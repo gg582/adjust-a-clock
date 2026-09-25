@@ -1,0 +1,23 @@
+[build-system]
+requires = ["setuptools>=64"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "clockrate"
+version = "0.1.0"
+description = "기계식 시계 녹음으로 하루 오차(초/일)를 측정하는 타임그래퍼"
+readme = "README.md"
+requires-python = ">=3.10"
+dependencies = ["numpy>=1.24", "scipy>=1.10", "matplotlib>=3.7"]
+
+[project.optional-dependencies]
+test = ["pytest>=7"]
+
+[project.scripts]
+clock-rate = "clockrate.cli:main"
+
+[tool.setuptools]
+packages = ["clockrate"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
