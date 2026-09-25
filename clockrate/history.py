@@ -33,7 +33,10 @@ def previous(entries, name, bph):
 def upsert(entries, name, sg, an):
     """같은 파일을 다시 분석하면 제자리에서 갱신한다 (순서 유지)."""
     entry = dict(file=name, bph=an.nominal_bph, rate=round(sg.rate, 2), ci95=round(2 * sg.rate_se, 2),
-                 beat_error_ms=round(sg.fit.beat_err * 1000, 2), analyzed=datetime.now().isoformat(timespec='seconds'))
+                 beat_error_ms=round(sg.fit.beat_err * 1000, 2),
+                 amplitude=round(sg.amplitude.deg) if sg.amplitude else None,
+                 amplitude_reliable=bool(sg.amplitude and sg.amplitude.reliable),
+                 analyzed=datetime.now().isoformat(timespec='seconds'))
     for i, e in enumerate(entries):
         if e['file'] == name:
             entries[i] = entry

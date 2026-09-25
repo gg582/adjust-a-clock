@@ -6,6 +6,7 @@ import sys
 
 from . import history
 from .advice import DEFAULT_TOLERANCE, headline
+from .amplitude import DEFAULT_LIFT_ANGLE
 from .analysis import DEFAULT_BPH, AnalysisError, analyze_signal
 from .audio import AudioError, load_audio, write_wav
 from .report import segment_facts, summary_lines, to_json
@@ -59,6 +60,8 @@ def build_parser():
     ap.add_argument('--기준', '--reference', dest='reference', default='자동', help="'자동' | '규격' | '구간1'")
     ap.add_argument('--bph', '--vph', dest='bph', type=parse_bph, default=DEFAULT_BPH,
                     help=f"규격 진동수(시간당 박자 수). 기본 {DEFAULT_BPH}, '자동'이면 표준값에서 추정")
+    ap.add_argument('--리프트각', '--lift-angle', dest='lift', type=float, default=DEFAULT_LIFT_ANGLE,
+                    help=f'진폭 계산용 리프트각(도). 기본 {DEFAULT_LIFT_ANGLE:.0f}, 0이면 진폭 계산 안 함')
     ap.add_argument('--허용', '--tolerance', dest='tol', type=float, default=DEFAULT_TOLERANCE,
                     help=f'이 안(초/일)이면 조정 완료로 판정 (기본 {DEFAULT_TOLERANCE:.0f})')
     ap.add_argument('--이름', '--names', dest='names', default='', help='구간 이름, 쉼표로 구분 (예: 가운데,빠르게,느리게)')
@@ -77,7 +80,8 @@ def build_parser():
 def run_one(path, a, log):
     sr, x = load_audio(path)
     an = analyze_signal(x, sr, split=a.split, bph=a.bph, reference=a.reference,
-                        names=[n.strip() for n in a.names.split(',')] if a.names else (), window=a.window)
+                        names=[n.strip() for n in a.names.split(',')] if a.names else (), window=a.window,
+                        lift=a.lift or None)
     name = os.path.basename(path)
     stem = os.path.splitext(name)[0]
     out = os.path.join(a.out, stem)
@@ -129,7 +133,9 @@ def main(argv=None):
                 advice = next_step(prev['rate'], prev['ci95'] / 2, last['rate'], last['ci95'] / 2, a.tol)[1]
             print('\n━━ 조정 기록 ━━')
             for e in log:
-                print(f"  {e['file']:<16} {e['rate']:+8.1f} 초/일   {headline(e['rate'])}")
+                amp = (f"   진폭 {e['amplitude']}°" + ('' if e.get('amplitude_reliable', True) else ' (참고용)')
+                       if e.get('amplitude') else '')
+                print(f"  {e['file']:<16} {e['rate']:+8.1f} 초/일   {headline(e['rate'])}{amp}")
             if advice:
                 print(f'  다음 할 일: {advice}')
             if a.plots:

@@ -1,6 +1,6 @@
 """분석 결과를 '시계를 맞출 때 쓰는' 한국어 요약과 JSON으로 만든다."""
-from .advice import (DEFAULT_TOLERANCE, fmt_duration, grade_beat_error, grade_rate, headline, lever_direction,
-                     next_step, quality, stability)
+from .advice import (DEFAULT_TOLERANCE, fmt_duration, grade_amplitude, grade_beat_error, grade_rate, headline,
+                     lever_direction, next_step, quality, stability)
 from .analysis import guess_nominal_bph
 from .segments import SPLIT_NONE
 
@@ -19,12 +19,31 @@ def segment_facts(sg, prev=None, tol=DEFAULT_TOLERANCE, relative_to=None):
         grade=grade_rate(sg.rate, tol),
         headline=headline(sg.rate) if relative_to is None else f'{relative_to}보다 {headline(sg.rate)}', lever=lever_direction(sg.rate, tol),
         drift={'1일': sg.rate, '1주': sg.rate * 7, '30일': sg.rate * 30},
-        beat=grade_beat_error(f.beat_err * 1000), stability=stability(sg.windows),
+        beat=grade_beat_error(f.beat_err * 1000), amp=grade_amplitude(sg.amplitude), stability=stability(sg.windows),
         quality=quality(f, span), step=None)
     if prev is not None:
         delta, msg = next_step(prev['rate'], prev['ci95'] / 2, sg.rate, sg.rate_se, tol)
         facts['step'] = (prev['file'], delta, msg)
+        if prev.get('amplitude') and prev.get('amplitude_reliable') and sg.amplitude and sg.amplitude.reliable:
+            facts['amp_change'] = (prev['file'], sg.amplitude.deg - prev['amplitude'])
     return facts
+
+
+def amplitude_line(sg, facts):
+    a = sg.amplitude
+    if a is None:
+        return '   진폭          측정 못 함 (언락 소리를 찾지 못함)'
+    g = facts['amp']
+    txt = (f'   진폭          약 {a.deg:.0f}° ({a.lo:.0f}–{a.hi:.0f}°, 틱 {a.tick_deg:.0f}° · 톡 {a.tock_deg:.0f}°)'
+           if a.tick_deg and a.tock_deg else f'   진폭          약 {a.deg:.0f}°')
+    txt += f'  {g.icon} {g.label}' if a.reliable else '  (참고용)'
+    lines = [txt, f'                 리프트각 {a.lift:.0f}° 가정 — 같은 시계끼리 비교할 때 가장 정확']
+    if 'amp_change' in facts:
+        pf, d = facts['amp_change']
+        lines.append(f'                 직전 녹음({pf}) 대비 {d:+.0f}°')
+    if a.note:
+        lines.append(f'                 ※ {a.note}')
+    return lines
 
 
 def _segment_block(sg, facts):
@@ -38,6 +57,7 @@ def _segment_block(sg, facts):
     lines += ['', ' ▶ 이대로 두면', '   ' + ' · '.join(f'{k} {_signed(v)}' for k, v in facts['drift'].items())]
     b = facts['beat']
     lines += ['', ' ▶ 시계 상태', f'   비트 에러     {f.beat_err * 1000:.1f} ms  {b.icon} {b.label}']
+    lines += amplitude_line(sg, facts)
     st = facts['stability']
     if st:
         w = sg.windows[0][1] - sg.windows[0][0]
@@ -64,7 +84,8 @@ def _relative_block(sg, first):
         verdict = f'{first.name}보다 {"빨라짐" if sg.rate > 0 else "느려짐"}'
     level, det, reasons, tips = quality(f, f.ticks[-1] - f.ticks[0])
     return [f' {sg.rate:+.1f} ± {ci:.1f} 초/일  →  {verdict}',
-            f'   비트 에러 {f.beat_err * 1000:.1f} ms · 측정 신뢰도 {level}'
+            f'   비트 에러 {f.beat_err * 1000:.1f} ms'
+            + (f' · 진폭 약 {sg.amplitude.deg:.0f}°' if sg.amplitude else '') + f' · 측정 신뢰도 {level}'
             + (f' ({", ".join(reasons)})' if reasons else '') + f' · 틱 {len(f.ticks)}/{f.expected}개']
 
 
@@ -121,6 +142,11 @@ def to_json(path, an, prev=None, tol=DEFAULT_TOLERANCE):
             quality=dict(level=level, reasons=reasons, tips=tips, ticks_used=len(sg.fit.ticks), ticks_expected=sg.fit.expected,
                          recovered=sg.fit.filled, noise_clicks=len(sg.fit.rejected),
                          jitter_us=round(sg.fit.jitter * 1e6)),
+            amplitude=dict(deg=round(sg.amplitude.deg), lo=round(sg.amplitude.lo), hi=round(sg.amplitude.hi),
+                           tick_deg=round(sg.amplitude.tick_deg) if sg.amplitude.tick_deg else None,
+                           tock_deg=round(sg.amplitude.tock_deg) if sg.amplitude.tock_deg else None,
+                           unlock_to_drop_ms=list(sg.amplitude.dt_ms), lift_angle=sg.amplitude.lift,
+                           reliable=sg.amplitude.reliable, grade=_grade_json(fx['amp'])) if sg.amplitude else None,
             measured_bph=round(sg.bph, 2)))
     return dict(file=path, duration=round(an.duration, 2), nominal_bph=an.nominal_bph, reference=an.reference,
                 bph_mismatch=an.bph_mismatch, tolerance_s_per_day=tol,

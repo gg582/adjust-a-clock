@@ -3,6 +3,7 @@ from dataclasses import dataclass, field
 
 import numpy as np
 
+from .amplitude import DEFAULT_LIFT_ANGLE, Amplitude, estimate_amplitude
 from .audio import denoise, envelope
 from .segments import detect_swish, find_cuts, segments_between
 from .ticks import BeatFit, detect_onsets, estimate_beat, fit_beats, refine_beats
@@ -32,6 +33,7 @@ class Segment:
     rate_se: float = 0.0
     is_reference: bool = False
     windows: list = field(default_factory=list)   # [(창 시작, 창 끝, 초/일), ...]
+    amplitude: Amplitude | None = None
 
     @property
     def bph(self):
@@ -99,12 +101,14 @@ def window_rates(fit, base_beat, window):
     return out
 
 
-def analyze_signal(x, sr, split='없음', bph=DEFAULT_BPH, reference='자동', names=(), window=None):
+def analyze_signal(x, sr, split='없음', bph=DEFAULT_BPH, reference='자동', names=(), window=None,
+                   lift=DEFAULT_LIFT_ANGLE):
     """
     split:     '없음'(기본) | '자동'(레버 소리로 분할) | '3.5,9.2'
     bph:       규격 진동수 (기본 18000). None이면 측정값에서 ±1% 이내의 표준값을 자동 선택
     reference: '자동'(규격이 있으면 규격, 자동 추정에 실패하면 구간 1) | '규격' | '구간1'
     window:    시간대별 안정성 창 길이(초). None이면 녹음 길이에 맞춰 자동, 0이면 끔
+    lift:      진폭 계산용 리프트각(도). None이면 진폭을 계산하지 않음
     """
     duration = len(x) / sr
     if duration < 3:
@@ -126,7 +130,8 @@ def analyze_signal(x, sr, split='없음', bph=DEFAULT_BPH, reference='자동', n
         fit = refine_beats(fit, clean, sr)
         i = len(segs)
         label = f'구간 {i + 1}' + (f' · {names[i]}' if i < len(names) and names[i] else '')
-        segs.append(Segment(name=label, t0=t0, t1=t1, fit=fit))
+        amp = estimate_amplitude(x, sr, fit, lift) if lift else None
+        segs.append(Segment(name=label, t0=t0, t1=t1, fit=fit, amplitude=amp))
     if not segs:
         raise AnalysisError('틱을 충분히 찾지 못했습니다. 시계에 마이크를 더 가까이 대고 다시 녹음해 주세요.')
 

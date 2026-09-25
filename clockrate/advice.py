@@ -58,6 +58,20 @@ def grade_beat_error(ms):
     return Grade('serious', '▲', '큼 — 비트 조정(밸런스 정지 위치 맞춤) 권장')
 
 
+def grade_amplitude(amp):
+    """손목시계에서 흔히 쓰는 기준. 리프트각을 가정한 값이라 경계 근처는 참고만 한다."""
+    if amp is None:
+        return Grade('warning', '△', '측정 못 함')
+    a = amp.deg
+    if a > 330:
+        return Grade('serious', '▲', '너무 큼 — 뱅킹(과진폭) 주의')
+    if a >= 250:
+        return Grade('good', '◎', '좋음')
+    if a >= 200:
+        return Grade('warning', '△', '보통')
+    return Grade('serious', '▲', '낮음 — 태엽 감김·주유·오염 확인')
+
+
 def stability(windows):
     """창별 오차의 폭. 반환: (최소, 최대, 판정 문구) 또는 None."""
     if len(windows) < 2:

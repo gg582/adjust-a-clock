@@ -112,6 +112,9 @@ def _facts_box(ax, sg, fx):
             ('   1주', ('+' if d['1주'] > 0 else '-') + fmt_duration(d['1주'])),
             ('   30일', ('+' if d['30일'] > 0 else '-') + fmt_duration(d['30일'])),
             ('비트 에러', f'{f.beat_err * 1000:.1f} ms  {fx["beat"].icon} {fx["beat"].label.split(" —")[0]}'),
+            ('진폭', (f'약 {sg.amplitude.deg:.0f}°  ' + (f'{fx["amp"].icon} {fx["amp"].label.split(" —")[0]}'
+                                                      if sg.amplitude.reliable else '(참고용)'))
+             if sg.amplitude else '측정 못 함'),
             ('속도 안정성', f'폭 {st[2]:.0f} 초/일 · {st[3].split(" —")[0]}' if st else '녹음이 짧아 생략'),
             ('측정 신뢰도', f'{level} (틱 {len(f.ticks)}/{f.expected})'),
             ('실측 진동수', f'{sg.bph:.1f} bph')]
@@ -120,7 +123,7 @@ def _facts_box(ax, sg, fx):
         ax.text(0, y, k, transform=ax.transAxes, fontsize=11.5, color=INK2 if k.startswith('   ') else INK,
                 fontweight='normal' if k.startswith('   ') else 'bold', va='top')
         ax.text(1, y, v, transform=ax.transAxes, fontsize=11.5, va='top', ha='right')
-        y -= .118
+        y -= .107
 
 
 def _compare_box(ax, facts_list):
@@ -238,7 +241,12 @@ def plot_report(an, name, path, facts_list, tol=DEFAULT_TOLERANCE):
 def plot_history(entries, path, advice=None, tol=DEFAULT_TOLERANCE):
     """entries: history.load() 결과 (분석한 순서). advice: 마지막 녹음에 대한 다음 할 일 문구."""
     setup_style()
-    fig, ax = plt.subplots(figsize=(13, 6.2))
+    amps = [e.get('amplitude') for e in entries]
+    has_amp = any(a is not None for a in amps)
+    if has_amp:
+        fig, (ax, ax2) = plt.subplots(2, 1, figsize=(13, 8.6), sharex=True, gridspec_kw={'height_ratios': [2.3, 1]})
+    else:
+        fig, ax = plt.subplots(figsize=(13, 6.2))
     x = np.arange(len(entries))
     r = np.array([e['rate'] for e in entries])
     ci = np.array([e['ci95'] for e in entries])
@@ -254,6 +262,21 @@ def plot_history(entries, path, advice=None, tol=DEFAULT_TOLERANCE):
                     va='bottom' if v >= 0 else 'top', fontsize=10.5)
     ax.set_xticks(x, [e['file'] for e in entries], rotation=0)
     ax.set_xlim(-.5, len(entries) - .5); ax.set_ylim(-span, span)
+    if has_amp:
+        xa = [i for i, a in enumerate(amps) if a is not None]
+        va = [amps[i] for i in xa]
+        ok = [entries[i].get('amplitude_reliable', True) for i in xa]
+        ax2.plot(xa, va, '-', color=COLORS[2], lw=1.8)
+        for xi, v, good in zip(xa, va, ok):
+            ax2.plot(xi, v, 'o', ms=9, mew=2, color=COLORS[2], mfc=COLORS[2] if good else SURF,
+                     mec=SURF if good else COLORS[2])
+            ax2.annotate(f'{v:.0f}°' + ('' if good else ' (참고용)'), (xi, v), xytext=(0, 10),
+                         textcoords='offset points', ha='center', fontsize=10.5)
+        ax2.set_ylim(min(va) - 40, max(va) + 45)
+        ax2.set_ylabel('진폭 (°)')
+        ax2.set_title('진폭 — 크게 줄면 태엽이 풀렸거나 무브먼트 상태를 확인 (빈 원은 참고용 값)', fontsize=11,
+                      fontweight='normal', color=INK2)
+        ax2.tick_params(labelbottom=True)
     ax.set_ylabel('하루 오차 (초/일)')
     ax.set_title('분석한 순서대로 · 위쪽이 빠름, 아래쪽이 느림 · 오차 막대 95% 신뢰구간', fontsize=11, fontweight='normal', color=INK2)
     fig.suptitle('조정 기록', fontsize=16, fontweight='bold', x=.01, ha='left')
@@ -270,7 +293,10 @@ def plot_diagnostics(an, path):
     """소음 제거 전후와 구간·틱 검출 상태. 검출이 이상할 때 원인을 볼 때만 쓴다."""
     setup_style()
     tt = np.arange(len(an.raw)) / an.sr
-    fig, ax = plt.subplots(4, 1, figsize=(14, 13), sharex=True)
+    fig = plt.figure(figsize=(14, 16))
+    gs = GridSpec(5, 2, figure=fig, height_ratios=[1, 1, 1, 1, 1.1], hspace=.55)
+    ax = [fig.add_subplot(gs[0, :])]
+    ax += [fig.add_subplot(gs[i, :], sharex=ax[0]) for i in (1, 2, 3)]
     ax[0].plot(tt, an.raw, lw=.4, color=INK2); ax[0].set_title('원본 파형'); ax[0].set_ylabel('진폭')
     f, t, Z = s.stft(an.clean, an.sr, nperseg=1024, noverlap=768)
     ax[1].pcolormesh(t, f / 1000, 20 * np.log10(np.abs(Z) + 1e-9), vmin=-115, vmax=-40, cmap='Greys',
@@ -293,7 +319,21 @@ def plot_diagnostics(an, path):
         ax[3].legend(loc='lower right', frameon=False)
     ax[3].set_title('소음 제거 후 파형과 사용한 틱 (위쪽 눈금)'); ax[3].set_ylabel('진폭')
     ax[-1].set_xlabel('시간 (초)'); ax[-1].set_xlim(0, an.duration)
-    fig.suptitle('진단 — 소음 제거와 틱 검출 상태', fontsize=16, fontweight='bold', x=.01, ha='left')
-    fig.tight_layout()
+    amp = an.segments[0].amplitude
+    for p, lab in ((0, '틱'), (1, '톡')):
+        a2 = fig.add_subplot(gs[4, p])
+        if amp and p < len(amp.profiles):
+            tt, m, tu, tm = amp.profiles[p]
+            a2.semilogy(tt * 1000, m, color=INK, lw=1.2)
+            for t_, name_, c in ((tu, '언락', COLORS[1]), (tm, '드롭', COLORS[0])):
+                a2.axvline(t_ * 1000, color=c, lw=1.5, ls=(0, (4, 2)))
+                a2.text(t_ * 1000, a2.get_ylim()[1], f' {name_}', color=INK, fontsize=10, va='top')
+            a2.set_title(f'{lab} 소리 구조 (틱 {len(an.segments[0].fit.ticks) // 2}개 중앙값) · '
+                         f'언락→드롭 {(tm - tu) * 1000:.1f} ms', fontsize=11)
+            a2.set_xlabel('드롭 기준 시각 (ms)'); a2.set_ylabel('소리 크기 (바닥=1)')
+        else:
+            a2.axis('off'); a2.text(.5, .5, f'{lab}: 언락 소리를 찾지 못함', ha='center', transform=a2.transAxes)
+    fig.suptitle('진단 — 소음 제거, 틱 검출, 진폭 계산에 쓴 소리 구조', fontsize=16, fontweight='bold', x=.01, ha='left')
+    fig.subplots_adjust(left=.07, right=.97, top=.95, bottom=.05)
     fig.savefig(path, dpi=110)
     plt.close(fig)

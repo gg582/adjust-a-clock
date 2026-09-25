@@ -8,6 +8,7 @@ import scipy.io.wavfile as wavfile
 
 from clockrate import AnalysisError, analyze_signal
 from clockrate.advice import fmt_duration, grade_rate, lever_direction, next_step
+from clockrate.amplitude import amplitude_of
 from clockrate.analysis import guess_nominal_bph
 from clockrate.cli import main, parse_bph
 from clockrate.segments import find_cuts
@@ -15,9 +16,10 @@ from clockrate.segments import find_cuts
 SR = 48000
 
 
-def synth(parts, duration, beat=0.2, beat_error=0.003, levers=(), accent=None, seed=1):
+def synth(parts, duration, beat=0.2, beat_error=0.003, levers=(), accent=None, seed=1, unlock=None):
     """parts: [(시작, 끝, 초/일), ...] 구간마다 해당 일오차로 틱을 만든다.
-    accent: 틱 크기 강약 반복 주기 (예: 4면 네 박마다 한 번 크게)."""
+    accent: 틱 크기 강약 반복 주기 (예: 4면 네 박마다 한 번 크게).
+    unlock: 드롭(큰 소리) 몇 초 앞에 작은 언락 소리를 넣을지 (진폭 검증용)."""
     rng = np.random.default_rng(seed)
     n = int(SR * duration)
     x = rng.normal(0, 0.01, n)
@@ -34,6 +36,9 @@ def synth(parts, duration, beat=0.2, beat_error=0.003, levers=(), accent=None, s
             j = int(tk * SR)
             if j + 300 < n:
                 x[j:j + 300] += amp * np.interp(k - (tk * SR - j), k, click)
+            if unlock and j - int(unlock * SR) > 0:
+                ju = int((tk - unlock) * SR)
+                x[ju:ju + 300] += 0.3 * amp * np.interp(k - ((tk - unlock) * SR - ju), k, click)
             t += b; i += 1
     for c in levers:                                                           # 레버 '스윽'
         j = int(c * SR)
@@ -170,3 +175,22 @@ def test_advice_rules():
     assert '반대 방향' in next_step(227.1, .1, -205.5, .1)[1] and '0.5배' in next_step(227.1, .1, -205.5, .1)[1]
     assert '더 건드리지' in next_step(-205.5, 5, 8.4, .3)[1]
     assert '헛돌' in next_step(-60, 1, -59, 1)[1]
+
+
+def test_amplitude_from_unlock_to_drop():
+    # 진폭 280°, 리프트각 52°, 18000 bph(주기 0.4초) → 언락→드롭 11.84 ms
+    dt = 0.4 / np.pi * np.arcsin(np.radians(52) / (2 * np.radians(280)))
+    x = synth([(0.3, 59.5, 0)], 60, unlock=dt)
+    amp = analyze_signal(x, SR).segments[0].amplitude
+    assert amp is not None and amp.reliable
+    assert amp.deg == pytest.approx(280, abs=8)
+    assert amplitude_of(dt, 0.4, 52) == pytest.approx(280, abs=.01)
+    # 리프트각을 바꾸면 거의 비례해서 바뀐다 (같은 시계끼리 비교는 리프트각과 무관)
+    amp45 = analyze_signal(x, SR, lift=45).segments[0].amplitude
+    assert amp45.deg / amp.deg == pytest.approx(45 / 52, rel=.03)
+
+
+def test_amplitude_absent_without_unlock_sound():
+    amp = analyze_signal(synth([(0.3, 29.5, 0)], 30), SR).segments[0].amplitude
+    assert amp is None or not amp.reliable
+    assert analyze_signal(synth([(0.3, 29.5, 0)], 30), SR, lift=None).segments[0].amplitude is None
