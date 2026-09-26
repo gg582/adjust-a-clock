@@ -10,6 +10,9 @@ from .amplitude import DEFAULT_LIFT_ANGLE
 from .analysis import DEFAULT_BPH, AnalysisError, analyze_signal
 from .audio import AudioError, load_audio, write_wav
 from .report import segment_facts, summary_lines, to_json
+from . import sheet as specsheet
+
+_UNSET = object()   # 사용자가 옵션을 직접 줬는지 구분 (시트 값보다 옵션이 우선)
 
 EPILOG = """\
 시계를 맞추는 순서:
@@ -58,10 +61,13 @@ def build_parser():
     ap.add_argument('files', nargs='+', metavar='파일', help='ffmpeg가 읽는 오디오/동영상 파일 (mp3, m4a, wav, mp4 ...)')
     ap.add_argument('--분할', '--split', dest='split', default='없음', help="'없음'(기본) | '자동' | 쉼표로 구분한 시각(초)")
     ap.add_argument('--기준', '--reference', dest='reference', default='자동', help="'자동' | '규격' | '구간1'")
-    ap.add_argument('--bph', '--vph', dest='bph', type=parse_bph, default=DEFAULT_BPH,
+    ap.add_argument('--bph', '--vph', dest='bph', type=parse_bph, default=_UNSET,
                     help=f"규격 진동수(시간당 박자 수). 기본 {DEFAULT_BPH}, '자동'이면 표준값에서 추정")
-    ap.add_argument('--리프트각', '--lift-angle', dest='lift', type=float, default=DEFAULT_LIFT_ANGLE,
+    ap.add_argument('--리프트각', '--lift-angle', dest='lift', type=float, default=_UNSET,
                     help=f'진폭 계산용 리프트각(도). 기본 {DEFAULT_LIFT_ANGLE:.0f}, 0이면 진폭 계산 안 함')
+    ap.add_argument('--시트', '--sheet', dest='sheet',
+                    help='무브먼트 사양 시트(INI)와 측정값을 비교 (예: sheets/slava_5671.ini). '
+                         'bph·리프트각은 옵션으로 직접 주지 않으면 시트 값을 씀')
     ap.add_argument('--허용', '--tolerance', dest='tol', type=float, default=DEFAULT_TOLERANCE,
                     help=f'이 안(초/일)이면 조정 완료로 판정 (기본 {DEFAULT_TOLERANCE:.0f})')
     ap.add_argument('--이름', '--names', dest='names', default='', help='구간 이름, 쉼표로 구분 (예: 가운데,빠르게,느리게)')
@@ -77,6 +83,16 @@ def build_parser():
     return ap
 
 
+def resolve_options(a):
+    """시트를 읽고, 직접 주지 않은 bph·리프트각을 시트 값(없으면 기본값)으로 채운다."""
+    a.spec = specsheet.load_sheet(a.sheet) if a.sheet else None
+    if a.bph is _UNSET:
+        a.bph = a.spec.bph if a.spec and a.spec.bph else DEFAULT_BPH
+    if a.lift is _UNSET:
+        a.lift = a.spec.lift if a.spec and a.spec.lift else DEFAULT_LIFT_ANGLE
+    return a
+
+
 def run_one(path, a, log):
     sr, x = load_audio(path)
     an = analyze_signal(x, sr, split=a.split, bph=a.bph, reference=a.reference,
@@ -90,11 +106,25 @@ def run_one(path, a, log):
     single = len(an.segments) == 1 and an.reference == 'nominal'
     prev = history.previous(log, stem, an.nominal_bph) if (a.history and single) else None
     lines = summary_lines(name, an, prev, a.tol)
+    sheet_json = None
+    if a.spec:
+        sheet_json = []
+        for sg in an.segments:
+            if sg.is_reference:
+                continue
+            checks = specsheet.compare(a.spec, sg, an)
+            if len(an.segments) > 1:
+                lines.append(f' ── {sg.name}')
+            lines += specsheet.check_lines(a.spec, checks)
+            sheet_json.append(dict(segment=sg.name, **specsheet.to_json(a.spec, checks)))
     print('\n'.join(lines))
     with open(os.path.join(out, '요약.txt'), 'w') as f:
         f.write('\n'.join(lines) + '\n')
     with open(os.path.join(out, '요약.json'), 'w') as f:
-        json.dump(to_json(path, an, prev, a.tol), f, ensure_ascii=False, indent=1)
+        data = to_json(path, an, prev, a.tol)
+        if sheet_json is not None:
+            data['sheet_check'] = sheet_json
+        json.dump(data, f, ensure_ascii=False, indent=1)
     if a.plots:
         from .plots import plot_diagnostics, plot_report
         rel = an.segments[0].name if an.reference == 'first' else None
@@ -112,6 +142,11 @@ def run_one(path, a, log):
 
 def main(argv=None):
     a = build_parser().parse_args(argv)
+    try:
+        resolve_options(a)
+    except specsheet.SheetError as e:
+        print(f'시트 오류: {e}', file=sys.stderr)
+        return 2
     log = history.load(a.out) if a.history else []
     failed, added = 0, False
     for i, path in enumerate(a.files):

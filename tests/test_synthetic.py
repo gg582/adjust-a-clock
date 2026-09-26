@@ -1,6 +1,7 @@
 """정답을 아는 합성 틱 소리로 측정 정확도를 검증한다."""
 import json
 import shutil
+from pathlib import Path
 
 import numpy as np
 import pytest
@@ -11,15 +12,18 @@ from clockrate.advice import fmt_duration, grade_rate, lever_direction, next_ste
 from clockrate.amplitude import amplitude_of
 from clockrate.analysis import guess_nominal_bph
 from clockrate.cli import main, parse_bph
+from clockrate.sheet import BORDER, FAIL, NA, PASS, SheetError, compare, load_sheet
 from clockrate.segments import find_cuts
 
 SR = 48000
 
 
-def synth(parts, duration, beat=0.2, beat_error=0.003, levers=(), accent=None, seed=1, unlock=None):
+def synth(parts, duration, beat=0.2, beat_error=0.003, levers=(), accent=None, seed=1, unlock=None,
+          drop_echo=None):
     """parts: [(시작, 끝, 초/일), ...] 구간마다 해당 일오차로 틱을 만든다.
     accent: 틱 크기 강약 반복 주기 (예: 4면 네 박마다 한 번 크게).
-    unlock: 드롭(큰 소리) 몇 초 앞에 작은 언락 소리를 넣을지 (진폭 검증용)."""
+    unlock: 드롭(큰 소리) 몇 초 앞에 작은 언락 소리를 넣을지 (진폭 검증용).
+    drop_echo: 드롭 몇 초 뒤에 더 큰 두 번째 봉우리를 넣을지 (갈라진 드롭 소리 재현)."""
     rng = np.random.default_rng(seed)
     n = int(SR * duration)
     x = rng.normal(0, 0.01, n)
@@ -39,6 +43,9 @@ def synth(parts, duration, beat=0.2, beat_error=0.003, levers=(), accent=None, s
             if unlock and j - int(unlock * SR) > 0:
                 ju = int((tk - unlock) * SR)
                 x[ju:ju + 300] += 0.3 * amp * np.interp(k - ((tk - unlock) * SR - ju), k, click)
+            if drop_echo and j + int(drop_echo * SR) + 300 < n:
+                je = int((tk + drop_echo) * SR)
+                x[je:je + 300] += 1.6 * amp * np.interp(k - ((tk + drop_echo) * SR - je), k, click)
             t += b; i += 1
     for c in levers:                                                           # 레버 '스윽'
         j = int(c * SR)
@@ -194,3 +201,56 @@ def test_amplitude_absent_without_unlock_sound():
     amp = analyze_signal(synth([(0.3, 29.5, 0)], 30), SR).segments[0].amplitude
     assert amp is None or not amp.reliable
     assert analyze_signal(synth([(0.3, 29.5, 0)], 30), SR, lift=None).segments[0].amplitude is None
+
+
+def test_amplitude_with_split_drop_sound():
+    # 오버홀 후처럼 드롭 소리가 갈라져 2.5 ms 뒤에 더 큰 봉우리가 와도, 드롭 시작 기준으로 재야 한다
+    dt = 0.4 / np.pi * np.arcsin(np.radians(52) / (2 * np.radians(280)))
+    x = synth([(0.3, 59.5, 0)], 60, unlock=dt, drop_echo=0.0025)
+    amp = analyze_signal(x, SR).segments[0].amplitude
+    assert amp is not None
+    assert amp.deg == pytest.approx(280, abs=10)
+
+
+SHEETS = Path(__file__).resolve().parent.parent / 'sheets'
+SHEET = str(SHEETS / 'slava_5671.ini')
+
+
+def test_sheet_loads_slava_5671():
+    s = load_sheet(SHEET)
+    assert s.bph == 18000 and s.lift is None
+    assert s.tol['rate_s_per_day'] == (-60, 60)
+    assert s.tol['amplitude_deg'] == (180, 310)
+    assert s.tol['power_reserve_h_min'] == (None, 36)
+    assert '±1 мин' in s.comments['rate_s_per_day']
+    assert load_sheet(str(SHEETS / '_template.ini')).tol == {}
+
+
+def test_sheet_compare_pass_border_fail(tmp_path):
+    dt = 0.4 / np.pi * np.arcsin(np.radians(52) / (2 * np.radians(280)))
+    good = analyze_signal(synth([(0.3, 59.5, 12)], 60, unlock=dt), SR)
+    res = {c.item: c.status for c in compare(load_sheet(SHEET), good.segments[0], good)}
+    assert res['하루 오차'] == PASS and res['진폭'] == PASS and res['비트 에러'] == PASS
+    assert res['파워 리저브'] == NA
+    fast = analyze_signal(synth([(0.3, 59.5, 90)], 60), SR)          # 하루 +90초: ±60 초과
+    res = {c.item: c.status for c in compare(load_sheet(SHEET), fast.segments[0], fast)}
+    assert res['하루 오차'] == FAIL and res['조속 레버로 보정 가능'] == PASS
+    edge = analyze_signal(synth([(0.3, 29.5, 59)], 30), SR)          # 한계 바로 안쪽: 오차 범위가 걸침
+    assert {c.item: c.status for c in compare(load_sheet(SHEET), edge.segments[0], edge)}['하루 오차'] in (PASS, BORDER)
+    bad = tmp_path / 'bad.ini'
+    bad.write_text('[tolerance]\nrate_s_per_day = a, b\n')
+    with pytest.raises(SheetError):
+        load_sheet(str(bad))
+
+
+@pytest.mark.skipif(not shutil.which('ffmpeg'), reason='ffmpeg 필요')
+def test_cli_sheet_sets_bph_and_writes_json(tmp_path, capsys):
+    p = tmp_path / 'rec.wav'
+    x = synth([(0.3, 29.5, 5)], 30)
+    wavfile.write(p, SR, (x / np.abs(x).max() * 0.9 * 32767).astype(np.int16))
+    out = tmp_path / 'out'
+    assert main([str(p), '--시트', SHEET, '--그래프없음', '--기록끔', '--출력', str(out)]) == 0
+    assert '사양 비교' in capsys.readouterr().out
+    data = json.loads((out / 'rec' / '요약.json').read_text())
+    assert data['nominal_bph'] == 18000 and data['sheet_check'][0]['name'] == 'Slava 5671 (61М)'
+    assert main([str(p), '--시트', str(tmp_path / 'none.ini')]) == 2

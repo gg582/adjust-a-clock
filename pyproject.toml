@@ -21,3 +21,4 @@ packages = ["clockrate"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
+pythonpath = ["."]

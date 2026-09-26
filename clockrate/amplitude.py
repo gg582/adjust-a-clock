@@ -50,7 +50,11 @@ def _unlock_to_drop(env, sr, ticks, dt_lo, dt_hi, pick=None):
         return None
     m = np.median(np.stack([env[i - pre:i + post] for i in idx]), 0)
     tt = np.arange(-pre, post) / sr
-    main = int(np.argmax(np.where((tt > -.001) & (tt < .005), m, 0)))
+    peak = int(np.argmax(np.where((tt > -.001) & (tt < .005), m, 0)))
+    # 드롭 소리는 여러 봉우리로 갈라질 수 있다(주유 상태·케이스 울림). 가장 큰 봉우리가 아니라
+    # 드롭이 시작되는 지점 — 최대값의 50%를 처음 넘는 곳 — 을 드롭 시각으로 쓴다.
+    lo = max(int(np.searchsorted(tt, tt[peak] - .004)), 0)
+    main = lo + int(np.argmax(m[lo:peak + 1] >= 0.5 * m[peak]))
     win = (tt > tt[main] - dt_hi) & (tt < tt[main] - dt_lo)
     pk, pr = s.find_peaks(np.where(win, m, 0), prominence=0)
     if not len(pk):
