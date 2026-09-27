@@ -1,4 +1,6 @@
 """분석 결과를 '시계를 맞출 때 쓰는' 한국어 요약과 JSON으로 만든다."""
+import numpy as np
+
 from .advice import (DEFAULT_TOLERANCE, fmt_duration, grade_amplitude, grade_beat_error, grade_rate, headline,
                      lever_direction, next_step, quality, stability)
 from .analysis import guess_nominal_bph
@@ -151,3 +153,52 @@ def to_json(path, an, prev=None, tol=DEFAULT_TOLERANCE):
     return dict(file=path, duration=round(an.duration, 2), nominal_bph=an.nominal_bph, reference=an.reference,
                 bph_mismatch=an.bph_mismatch, tolerance_s_per_day=tol,
                 cuts=[[round(a, 2), round(b, 2)] for a, b in an.cuts], segments=segs)
+
+
+def _main_minus(an, o):
+    """주 시계 − 다른 시계 오차 (초/일, 95%). 두 시계를 같은 녹음 장비 시계로 재므로 장비 오차가 상쇄된다."""
+    if o.rate is None or len(an.segments) != 1 or an.reference != 'nominal':
+        return None
+    sg = an.segments[0]
+    return sg.rate - o.rate, 2 * float(np.hypot(sg.rate_se, o.rate_se))
+
+
+def other_clock_lines(others, an):
+    """--여러시계: 주 시계 말고 찾은 시계들."""
+    lines = ['', ' ▶ 다른 시계 (--여러시계)']
+    if not others:
+        return lines + ['   찾지 못함 — 주 시계 말고는 규칙적인 틱 소리가 들리지 않습니다.']
+    for k, o in enumerate(others, 2):
+        f = o.fit
+        kind = ('쿼츠 시계(1초마다 뛰는 초침)로 보임' if o.quartz else
+                f'규격 {o.nominal_bph:.0f} bph' if o.nominal_bph else '맞는 표준 규격 없음')
+        lines.append(f'   시계 {k}   {f.beat:.3f}초 간격 · 실측 {o.bph:.1f} bph · {kind}')
+        if o.rate is not None:
+            ci = 2 * o.rate_se
+            verdict = '오차 범위 안 (사실상 정확)' if abs(o.rate) <= ci else headline(o.rate)
+            lines.append(f'            {verdict}   ({o.rate:+.1f} ± {ci:.1f} 초/일)')
+        lines.append(f'            틱 {len(f.ticks)}/{f.expected}개 사용 ({len(f.ticks) / f.expected:.0%}) · '
+                     f'틱 시각 흔들림 {f.jitter * 1000:.1f} ms · {o.band[0]}–{o.band[1]} Hz 대역에서 찾음')
+        mm = _main_minus(an, o)
+        if mm:
+            lines.append(f'            주 시계 − 시계 {k}: {mm[0]:+.1f} ± {mm[1]:.1f} 초/일 (녹음 장비 시계 오차와 무관)')
+    if any(o.quartz for o in others):
+        lines.append('   ※ 쿼츠 시계는 보통 하루 ±0.5초 안이라 기준으로 삼을 수 있습니다. "주 시계 − 쿼츠" 값이 '
+                     '녹음 장비 시계를 거치지 않은 주 시계의 오차입니다.')
+    return lines
+
+
+def other_clocks_json(others, an):
+    out = []
+    for o in others:
+        mm = _main_minus(an, o)
+        out.append(dict(
+            band_hz=list(o.band), score=round(o.score, 2), beat_s=round(o.fit.beat, 6), measured_bph=round(o.bph, 2),
+            nominal_bph=o.nominal_bph, quartz=o.quartz,
+            rate_s_per_day=round(o.rate, 1) if o.rate is not None else None,
+            ci95=round(2 * o.rate_se, 1) if o.rate is not None else None,
+            main_minus_this=dict(rate_s_per_day=round(mm[0], 1), ci95=round(mm[1], 1)) if mm else None,
+            beat_error_ms=round(o.fit.beat_err * 1000, 2),
+            quality=dict(ticks_used=len(o.fit.ticks), ticks_expected=o.fit.expected,
+                         noise_clicks=len(o.fit.rejected), jitter_us=round(o.fit.jitter * 1e6))))
+    return out

@@ -12,6 +12,7 @@ from clockrate.advice import fmt_duration, grade_rate, lever_direction, next_ste
 from clockrate.amplitude import amplitude_of
 from clockrate.analysis import guess_nominal_bph
 from clockrate.cli import main, parse_bph
+from clockrate.multiclock import find_other_clocks
 from clockrate.sheet import BORDER, FAIL, NA, PASS, SheetError, compare, load_sheet
 from clockrate.segments import find_cuts
 
@@ -254,3 +255,52 @@ def test_cli_sheet_sets_bph_and_writes_json(tmp_path, capsys):
     data = json.loads((out / 'rec' / '요약.json').read_text())
     assert data['nominal_bph'] == 18000 and data['sheet_check'][0]['name'] == 'Slava 5671 (61М)'
     assert main([str(p), '--시트', str(tmp_path / 'none.ini')]) == 2
+
+
+def add_quartz(x, rate, t0=0.37, level=0.02, freq=1000, seed=5):
+    """배경의 쿼츠 시계: 1초마다 낮고(1 kHz) 작은 틱, 코일 극성이 바뀌어 박마다 파형이 뒤집힌다."""
+    rng = np.random.default_rng(seed)
+    k = np.arange(int(0.03 * SR))
+    click = np.exp(-k / (0.006 * SR)) * np.sin(2 * np.pi * freq * k / SR) * level
+    beat, t, i = 1 / (1 + rate / 86400), t0, 0
+    while int(t * SR) + len(k) < len(x):
+        j = int(t * SR)
+        x[j:j + len(k)] += click * (1 if i % 2 else -1) * rng.uniform(0.7, 1.3)
+        t += beat; i += 1
+    return x
+
+
+def test_multi_clock_finds_background_quartz():
+    x = add_quartz(synth([(0.3, 59.5, -40)], 60), 25)
+    an = analyze_signal(x, SR)
+    assert abs(an.segments[0].rate + 40) < 0.5                # 쿼츠 소리가 주 시계 측정을 흐리지 않음
+    others = find_other_clocks(an)
+    assert len(others) == 1
+    q = others[0]
+    assert q.quartz and abs(q.rate - 25) < 1.0 and abs(q.rate - 25) < 3 * q.rate_se + 0.5
+    assert len(q.fit.ticks) >= 0.9 * q.fit.expected
+
+
+@pytest.mark.parametrize('accent', [None, 4])
+def test_multi_clock_no_false_positive(accent):
+    """다른 시계가 없으면 아무것도 찾지 않는다 (강약 틱의 반복도 새 시계로 착각하지 않음)."""
+    an = analyze_signal(synth([(0.3, 59.5, 20)], 60, accent=accent), SR)
+    assert find_other_clocks(an) == []
+
+
+@pytest.mark.skipif(not shutil.which('ffmpeg'), reason='ffmpeg 필요')
+def test_cli_multi_clock_only_when_asked(tmp_path, capsys):
+    p = tmp_path / 'rec.wav'
+    x = add_quartz(synth([(0.3, 59.5, -40)], 60), 0)
+    wavfile.write(p, SR, (x / np.abs(x).max() * 0.9 * 32767).astype(np.int16))
+    out = tmp_path / 'out'
+    assert main([str(p), '--그래프없음', '--기록끔', '--출력', str(out)]) == 0
+    assert '다른 시계' not in capsys.readouterr().out
+    assert 'other_clocks' not in json.loads((out / 'rec' / '요약.json').read_text())
+    assert main([str(p), '--여러시계', '--기록끔', '--출력', str(out)]) == 0
+    assert '쿼츠' in capsys.readouterr().out
+    data = json.loads((out / 'rec' / '요약.json').read_text())
+    oc = data['other_clocks'][0]
+    assert oc['quartz'] and abs(oc['rate_s_per_day']) < 1.5
+    assert abs(oc['main_minus_this']['rate_s_per_day'] + 40) < 2
+    assert (out / 'rec' / '다른시계.png').exists()

@@ -9,7 +9,7 @@ from .advice import DEFAULT_TOLERANCE, headline
 from .amplitude import DEFAULT_LIFT_ANGLE
 from .analysis import DEFAULT_BPH, AnalysisError, analyze_signal
 from .audio import AudioError, load_audio, write_wav
-from .report import segment_facts, summary_lines, to_json
+from .report import other_clock_lines, other_clocks_json, segment_facts, summary_lines, to_json
 from . import sheet as specsheet
 
 _UNSET = object()   # 사용자가 옵션을 직접 줬는지 구분 (시트 값보다 옵션이 우선)
@@ -40,6 +40,7 @@ EPILOG = """\
   clock-rate recordings/시간조정4.mp3
   clock-rate recordings/시간조정*.mp3                    # 여러 파일을 순서대로 → 조정 기록
   clock-rate recordings/탈진기.mp3 --분할 자동 --기준 구간1 --이름 가운데,빠르게,느리게
+  clock-rate recordings/오버홀하루후.mp3 --여러시계               # 배경의 쿼츠 시계도 같이 잼
 """
 
 
@@ -79,6 +80,8 @@ def build_parser():
                     help='조정 기록에 남기지 않고 직전 녹음과 비교하지도 않음')
     ap.add_argument('--진단', '--diagnostics', dest='diag', action='store_true',
                     help='소음 제거·틱 검출 상태 그래프와 소음 제거 wav도 저장')
+    ap.add_argument('--여러시계', '--multi-clock', dest='multi', action='store_true',
+                    help='주 시계 소리를 빼고 남은 소리에서 다른 시계(예: 배경의 쿼츠 시계)도 찾아 하루 오차를 잼')
     ap.add_argument('--그래프없음', '--no-plots', dest='plots', action='store_false', help='요약만 만들고 그래프는 생략')
     return ap
 
@@ -117,6 +120,11 @@ def run_one(path, a, log):
                 lines.append(f' ── {sg.name}')
             lines += specsheet.check_lines(a.spec, checks)
             sheet_json.append(dict(segment=sg.name, **specsheet.to_json(a.spec, checks)))
+    others = None
+    if a.multi:
+        from .multiclock import find_other_clocks
+        others = find_other_clocks(an)
+        lines += other_clock_lines(others, an)
     print('\n'.join(lines))
     with open(os.path.join(out, '요약.txt'), 'w') as f:
         f.write('\n'.join(lines) + '\n')
@@ -124,15 +132,19 @@ def run_one(path, a, log):
         data = to_json(path, an, prev, a.tol)
         if sheet_json is not None:
             data['sheet_check'] = sheet_json
+        if others is not None:
+            data['other_clocks'] = other_clocks_json(others, an)
         json.dump(data, f, ensure_ascii=False, indent=1)
     if a.plots:
-        from .plots import plot_diagnostics, plot_report
+        from .plots import plot_diagnostics, plot_other_clocks, plot_report
         rel = an.segments[0].name if an.reference == 'first' else None
         facts = [(sg, segment_facts(sg, prev if single else None, a.tol, rel)) for sg in an.segments]
         plot_report(an, name, os.path.join(out, '리포트.png'), facts, a.tol)
         if a.diag:
             plot_diagnostics(an, os.path.join(out, '진단.png'))
             write_wav(os.path.join(out, '소음제거.wav'), sr, an.clean)
+        if others:
+            plot_other_clocks(an, others, os.path.join(out, '다른시계.png'))
     print(f'→ {out}/')
     if a.history and single:
         history.upsert(log, stem, an.segments[0], an)

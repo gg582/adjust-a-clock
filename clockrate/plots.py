@@ -337,3 +337,40 @@ def plot_diagnostics(an, path):
     fig.subplots_adjust(left=.07, right=.97, top=.95, bottom=.05)
     fig.savefig(path, dpi=110)
     plt.close(fig)
+
+
+# ---------------------------------------------------------------- 다른 시계 (--여러시계)
+
+def plot_other_clocks(an, others, path):
+    """시계마다 한 줄: 틱 평균 소리 모양(무엇을 틱으로 잡았는지)과 타임그래퍼."""
+    setup_style()
+    fig, axs = plt.subplots(len(others), 2, figsize=(14, 4.2 * len(others)), squeeze=False,
+                            gridspec_kw=dict(width_ratios=[1, 2.2]))
+    for k, (o, (a1, a2)) in enumerate(zip(others, axs), 2):
+        f = o.fit
+        if o.profile:
+            tt, m = o.profile
+            a1.plot(tt, m * 1000, color=INK, lw=1.3)
+        a1.axvline(0, color=COLORS[1], lw=1.2, ls=(0, (4, 2)))
+        a1.set_title(f'시계 {k} 틱 소리 ({o.band[0]}–{o.band[1]} Hz, 주 시계를 뺀 뒤 {len(f.ticks)}개 중앙값)',
+                     fontsize=11)
+        a1.set_xlabel('틱 시각 기준 (ms)'); a1.set_ylabel('소리 크기')
+        base = 3600 / o.nominal_bph if o.nominal_bph else f.beat
+        x = f.ticks - f.ticks[0]
+        ahead = -(x - (f.n - f.n[0]) * base) * 1000
+        ahead -= np.median(ahead[:5])
+        for p, c, lab in ((0, COLORS[0], '짝수 박'), (1, COLORS[1], '홀수 박')):
+            sel = f.parity == p
+            a2.plot(x[sel], ahead[sel], 'o', ms=4, color=c, mec='none', label=lab)
+        xx = np.array([x[0], x[-1]])
+        a2.plot(xx, np.polyval(np.polyfit(x, ahead, 1), xx), color=INK, lw=1.2, ls=(0, (5, 3)))
+        a2.axhline(0, color=INK2, lw=1)
+        kind = '쿼츠로 보임' if o.quartz else f'{o.bph:.1f} bph'
+        rate = f' · {o.rate:+.1f} ± {2 * o.rate_se:.1f} 초/일' if o.rate is not None else ''
+        a2.set_title(f'시계 {k} 타임그래퍼 — {kind}{rate}', fontsize=11)
+        a2.set_xlabel('녹음 시간 (초)'); a2.set_ylabel('기준보다 앞선 시간 (ms)')
+        a2.legend(frameon=False, loc='best', markerscale=2)
+    fig.suptitle('다른 시계 — 주 시계 소리를 빼고 남은 소리에서 찾은 틱', fontsize=14, fontweight='bold', x=.01, ha='left')
+    fig.tight_layout()
+    fig.savefig(path, dpi=110)
+    plt.close(fig)
