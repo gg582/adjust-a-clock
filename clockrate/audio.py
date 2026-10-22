@@ -5,6 +5,7 @@ import tempfile
 
 import numpy as np
 import scipy.io.wavfile as wavfile
+import scipy.ndimage as ndimage
 import scipy.signal as s
 
 SAMPLE_RATE = 48000
@@ -32,14 +33,21 @@ def write_wav(path, sr, x):
 
 
 def denoise(x, sr):
-    """대역통과(3.5–16 kHz) + 스펙트럴 게이팅. 틱 사이 조용한 구간을 잡음 기준으로 삼는다."""
+    """대역통과(3.5–16 kHz) + 스펙트럴 게이팅. 틱 사이 조용한 구간을 잡음 기준으로 삼되,
+    시간축 중앙값으로 잡음 바닥이 시간에 따라 변하는 것(대화, TV, 손동작 소리)도 따라간다."""
     hi = min(16000, sr / 2 - 500)
     xb = s.sosfiltfilt(s.butter(6, [3500, hi], 'bandpass', fs=sr, output='sos'), x)
     nper = 512; nov = nper * 3 // 4
     _, _, Z = s.stft(xb, sr, nperseg=nper, noverlap=nov)
     P = np.abs(Z)
-    noise = np.percentile(P, 30, axis=1, keepdims=True)
-    gain = s.medfilt2d(np.clip(1 - (1.8 * noise / (P + 1e-12)) ** 2, 0, 1), (3, 1))
+    hop = nper - nov
+    step = max(1, round(sr / hop / 2))  # 잡음 바닥은 0.5초 간격으로만 추적 (전체 해상도로 하면 느림)
+    cols = np.arange(0, P.shape[1], step)
+    win = max(3, round(sr / hop / step))  # 약 1초 창
+    low = ndimage.median_filter(P[:, cols], size=(1, win), mode='nearest')
+    local = np.apply_along_axis(lambda r: np.interp(np.arange(P.shape[1]), cols, r), 1, low)
+    noise = np.maximum(np.percentile(P, 30, axis=1, keepdims=True), local)
+    gain = s.medfilt2d(np.clip(1 - (2.0 * noise / (P + 1e-12)) ** 2, 0, 1), (3, 1))
     _, xc = s.istft(Z * gain, sr, nperseg=nper, noverlap=nov)
     return xc[:len(x)]
 
