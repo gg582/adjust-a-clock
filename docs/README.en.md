@@ -199,7 +199,7 @@ clock-rate 녹음.m4a --시트 sheets/slava_5671.ini
 On the synthetic recordings in `tests/` (including street noise, lever sounds, beat error, loud/soft ticks, and unlock sounds), the daily error matches the ground truth within 0.5 s/day and the amplitude within 8°.
 On a synthetic recording mixed with a faint quartz tick (1 kHz) in the background, `--multi-clock` finds the quartz daily error within 1 s/day of the truth, and finds nothing in recordings without another clock (including loud/soft ticks).
 On a real recording (Slava 5671), an Android timegrapher app (+7 s/day) and this tool (+8.4 ± 0.6 s/day) agreed.
-A real regulation case (2026-10-22~23): a Slava 5671 running 14 min 43 s fast per day was brought to **+0.6 s/day** (measured 18000.1 bph, cross-checked against a background quartz clock at +3.4 ± 28.7 s/day) by adjusting the hairspring effective length and regulator lever as this tool advised. The process is documented in [`docs/slava_5671_regulation_notes.md`](slava_5671_regulation_notes.md).
+A real regulation case (2026-10-22~23): a Slava 5671 running 14 min 43 s fast per day was brought to **+0.6 s/day** (measured 18000.1 bph, cross-checked against a background quartz clock at +3.4 ± 28.7 s/day) by adjusting the hairspring effective length and regulator lever as this tool advised. The process is documented in [`docs/slava_5671_regulation_notes.en.md`](slava_5671_regulation_notes.en.md).
 
 ```bash
 python3 -m pytest
@@ -224,9 +224,9 @@ clockrate/
 sheets/         movement spec sheets (slava_5671.ini, _template.ini)
 examples/       6 real recordings and their results (examples/README.md)
 tests/          synthetic-signal tests
-recordings/     recordings (excluded from git)
+recordings/     recordings
 photos/         photos (excluded from git)
-results/        analysis results (excluded from git)
+results/        analysis results (denoised wav files excluded from git)
 ```
 
 Korean graphs use the first installed font among NanumBarunGothic, NanumGothic, Noto Sans CJK KR, Malgun Gothic, and AppleGothic.

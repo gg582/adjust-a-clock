@@ -1,0 +1,101 @@
+{
+ "file": "recordings/테스트.mp3",
+ "duration": 50.78,
+ "nominal_bph": 18000.0,
+ "reference": "nominal",
+ "bph_mismatch": true,
+ "tolerance_s_per_day": 10.0,
+ "cuts": [],
+ "segments": [
+  {
+   "name": "구간 1",
+   "start": 0.15,
+   "end": 50.48,
+   "rate_s_per_day": 883.2,
+   "ci95": 57.5,
+   "headline": "하루 14분 43초 빠름",
+   "grade": {
+    "key": "critical",
+    "label": "크게 어긋남"
+   },
+   "action": "조속 레버를 느림(-, S) 쪽으로 옮기세요.",
+   "next_step": {
+    "previous": "오버홀하루후",
+    "change": 886.4,
+    "advice": "직전과 반대 방향으로, 그때 옮긴 거리의 약 1.0배 되돌리세요."
+   },
+   "drift_s": {
+    "1일": 883.2,
+    "1주": 6182.7,
+    "30일": 26497.1
+   },
+   "beat_error_ms": 11.42,
+   "beat_error_grade": {
+    "key": "serious",
+    "label": "큼 — 비트 조정(밸런스 정지 위치 맞춤) 권장"
+   },
+   "stability": {
+    "min": 800.7,
+    "max": 942.0,
+    "spread": 141.3,
+    "label": "불안정 — 태엽·자세·녹음 상태 확인"
+   },
+   "windows": [
+    [
+     0.2,
+     10.2,
+     857.7
+    ],
+    [
+     10.2,
+     20.2,
+     942.0
+    ],
+    [
+     20.2,
+     30.2,
+     930.8
+    ],
+    [
+     30.2,
+     40.2,
+     817.9
+    ],
+    [
+     40.2,
+     50.2,
+     800.7
+    ]
+   ],
+   "quality": {
+    "level": "높음",
+    "reasons": [],
+    "tips": [],
+    "ticks_used": 255,
+    "ticks_expected": 255,
+    "recovered": 1,
+    "noise_clicks": 1,
+    "jitter_us": 4415
+   },
+   "amplitude": {
+    "deg": 205,
+    "lo": 186,
+    "hi": 262,
+    "tick_deg": 223,
+    "tock_deg": 188,
+    "unlock_to_drop_ms": [
+     14.75,
+     17.48
+    ],
+    "lift_angle": 52.0,
+    "reliable": false,
+    "grade": {
+     "key": "warning",
+     "label": "보통"
+    }
+   },
+   "measured_bph": 18184.01
+  }
+ ],
+ "other_clocks": []
+}

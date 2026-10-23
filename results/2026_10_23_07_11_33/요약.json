@@ -1,0 +1,115 @@
+{
+ "file": "recordings/2026_10_23_07_11_33.mp3",
+ "duration": 24.53,
+ "nominal_bph": 18000.0,
+ "reference": "nominal",
+ "bph_mismatch": false,
+ "tolerance_s_per_day": 10.0,
+ "cuts": [],
+ "segments": [
+  {
+   "name": "구간 1",
+   "start": 0.15,
+   "end": 24.23,
+   "rate_s_per_day": -444.1,
+   "ci95": 22.3,
+   "headline": "하루 7분 24초 느림",
+   "grade": {
+    "key": "critical",
+    "label": "크게 어긋남"
+   },
+   "action": "조속 레버를 빠름(+, F) 쪽으로 옮기세요.",
+   "next_step": {
+    "previous": "2026_10_23_07_02_23",
+    "change": -695.7,
+    "advice": "직전과 반대 방향으로, 그때 옮긴 거리의 약 0.6배 되돌리세요."
+   },
+   "drift_s": {
+    "1일": -444.1,
+    "1주": -3108.4,
+    "30일": -13321.9
+   },
+   "beat_error_ms": 12.54,
+   "beat_error_grade": {
+    "key": "serious",
+    "label": "큼 — 비트 조정(밸런스 정지 위치 맞춤) 권장"
+   },
+   "stability": {
+    "min": -711.1,
+    "max": -309.0,
+    "spread": 402.1,
+    "label": "불안정 — 태엽·자세·녹음 상태 확인"
+   },
+   "windows": [
+    [
+     0.3,
+     10.3,
+     -711.1
+    ],
+    [
+     10.3,
+     20.3,
+     -309.0
+    ]
+   ],
+   "quality": {
+    "level": "보통",
+    "reasons": [
+     "녹음이 짧음(24초)"
+    ],
+    "tips": [
+     "1분 이상 녹음하면 더 정확해집니다."
+    ],
+    "ticks_used": 120,
+    "ticks_expected": 120,
+    "recovered": 0,
+    "noise_clicks": 0,
+    "jitter_us": 9698
+   },
+   "amplitude": {
+    "deg": 348,
+    "lo": 277,
+    "hi": 380,
+    "tick_deg": 372,
+    "tock_deg": 325,
+    "unlock_to_drop_ms": [
+     8.96,
+     10.25
+    ],
+    "lift_angle": 52.0,
+    "reliable": false,
+    "grade": {
+     "key": "serious",
+     "label": "너무 큼 — 뱅킹(과진폭) 주의"
+    }
+   },
+   "measured_bph": 17907.49
+  }
+ ],
+ "other_clocks": [
+  {
+   "band_hz": [
+    800,
+    1500
+   ],
+   "score": 0.69,
+   "beat_s": 0.999705,
+   "measured_bph": 3601.06,
+   "nominal_bph": 3600,
+   "quartz": true,
+   "rate_s_per_day": 25.5,
+   "ci95": 37.3,
+   "main_minus_this": {
+    "rate_s_per_day": -469.5,
+    "ci95": 43.4
+   },
+   "beat_error_ms": 3.69,
+   "quality": {
+    "ticks_used": 22,
+    "ticks_expected": 24,
+    "noise_clicks": 6,
+    "jitter_us": 6428
+   }
+  }
+ ]
+}

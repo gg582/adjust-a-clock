@@ -1,0 +1,120 @@
+{
+ "file": "recordings/2026_10_23_07_02_23.mp3",
+ "duration": 30.59,
+ "nominal_bph": 18000.0,
+ "reference": "nominal",
+ "bph_mismatch": false,
+ "tolerance_s_per_day": 10.0,
+ "cuts": [],
+ "segments": [
+  {
+   "name": "구간 1",
+   "start": 0.15,
+   "end": 30.29,
+   "rate_s_per_day": 251.6,
+   "ci95": 29.7,
+   "headline": "하루 4분 12초 빠름",
+   "grade": {
+    "key": "critical",
+    "label": "크게 어긋남"
+   },
+   "action": "조속 레버를 느림(-, S) 쪽으로 옮기세요.",
+   "next_step": {
+    "previous": "2026_10_23_06_59_14",
+    "change": -74.1,
+    "advice": "직전에 옮긴 방향으로, 그때 옮긴 거리의 약 3.4배 더 옮기세요. 한 번에 다 옮기지 말고 나눠서 확인하세요."
+   },
+   "drift_s": {
+    "1일": 251.6,
+    "1주": 1761.5,
+    "30일": 7549.2
+   },
+   "beat_error_ms": 11.68,
+   "beat_error_grade": {
+    "key": "serious",
+    "label": "큼 — 비트 조정(밸런스 정지 위치 맞춤) 권장"
+   },
+   "stability": {
+    "min": 213.6,
+    "max": 263.3,
+    "spread": 49.8,
+    "label": "불안정 — 태엽·자세·녹음 상태 확인"
+   },
+   "windows": [
+    [
+     0.3,
+     10.3,
+     263.3
+    ],
+    [
+     10.3,
+     20.3,
+     213.6
+    ],
+    [
+     20.3,
+     30.2,
+     249.7
+    ]
+   ],
+   "quality": {
+    "level": "보통",
+    "reasons": [
+     "녹음이 짧음(30초)"
+    ],
+    "tips": [
+     "1분 이상 녹음하면 더 정확해집니다."
+    ],
+    "ticks_used": 151,
+    "ticks_expected": 151,
+    "recovered": 0,
+    "noise_clicks": 2,
+    "jitter_us": 1282
+   },
+   "amplitude": {
+    "deg": 176,
+    "lo": 167,
+    "hi": 191,
+    "tick_deg": 184,
+    "tock_deg": 169,
+    "unlock_to_drop_ms": [
+     17.98,
+     19.65
+    ],
+    "lift_angle": 52.0,
+    "reliable": true,
+    "grade": {
+     "key": "serious",
+     "label": "낮음 — 태엽 감김·주유·오염 확인"
+    }
+   },
+   "measured_bph": 18052.43
+  }
+ ],
+ "other_clocks": [
+  {
+   "band_hz": [
+    800,
+    1500
+   ],
+   "score": 0.7,
+   "beat_s": 0.999981,
+   "measured_bph": 3600.07,
+   "nominal_bph": 3600,
+   "quartz": true,
+   "rate_s_per_day": 1.6,
+   "ci95": 30.5,
+   "main_minus_this": {
+    "rate_s_per_day": 250.0,
+    "ci95": 42.5
+   },
+   "beat_error_ms": 6.38,
+   "quality": {
+    "ticks_used": 29,
+    "ticks_expected": 29,
+    "noise_clicks": 5,
+    "jitter_us": 6932
+   }
+  }
+ ]
+}

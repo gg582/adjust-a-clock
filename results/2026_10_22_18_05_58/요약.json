@@ -1,0 +1,100 @@
+{
+ "file": "recordings/2026_10_22_18_05_58.mp3",
+ "duration": 41.95,
+ "nominal_bph": 18000.0,
+ "reference": "nominal",
+ "bph_mismatch": false,
+ "tolerance_s_per_day": 10.0,
+ "cuts": [],
+ "segments": [
+  {
+   "name": "구간 1",
+   "start": 0.15,
+   "end": 41.65,
+   "rate_s_per_day": -243.2,
+   "ci95": 194.4,
+   "headline": "하루 4분 3초 느림",
+   "grade": {
+    "key": "critical",
+    "label": "크게 어긋남"
+   },
+   "action": "조속 레버를 빠름(+, F) 쪽으로 옮기세요.",
+   "next_step": {
+    "previous": "2026_10_22_18_03_22",
+    "change": 22.2,
+    "advice": "직전 녹음과 속도 차이가 거의 없습니다. 레버를 움직였다면 헛돌았거나 헤어스프링이 레버 핀에서 빠졌을 수 있습니다."
+   },
+   "drift_s": {
+    "1일": -243.2,
+    "1주": -1702.7,
+    "30일": -7297.4
+   },
+   "beat_error_ms": 9.95,
+   "beat_error_grade": {
+    "key": "serious",
+    "label": "큼 — 비트 조정(밸런스 정지 위치 맞춤) 권장"
+   },
+   "stability": {
+    "min": -544.3,
+    "max": -77.1,
+    "spread": 467.2,
+    "label": "불안정 — 태엽·자세·녹음 상태 확인"
+   },
+   "windows": [
+    [
+     0.3,
+     10.3,
+     -544.3
+    ],
+    [
+     10.3,
+     20.3,
+     -318.6
+    ],
+    [
+     20.3,
+     30.3,
+     -77.1
+    ],
+    [
+     30.3,
+     40.3,
+     -238.3
+    ]
+   ],
+   "quality": {
+    "level": "보통",
+    "reasons": [
+     "녹음이 짧음(41초)"
+    ],
+    "tips": [
+     "1분 이상 녹음하면 더 정확해집니다."
+    ],
+    "ticks_used": 207,
+    "ticks_expected": 207,
+    "recovered": 0,
+    "noise_clicks": 4,
+    "jitter_us": 10070
+   },
+   "amplitude": {
+    "deg": 150,
+    "lo": 140,
+    "hi": 379,
+    "tick_deg": 145,
+    "tock_deg": 155,
+    "unlock_to_drop_ms": [
+     23.0,
+     21.58
+    ],
+    "lift_angle": 52.0,
+    "reliable": false,
+    "grade": {
+     "key": "serious",
+     "label": "낮음 — 태엽 감김·주유·오염 확인"
+    }
+   },
+   "measured_bph": 17949.32
+  }
+ ],
+ "other_clocks": []
+}

@@ -1,0 +1,120 @@
+{
+ "file": "recordings/2026_10_23_06_59_14.mp3",
+ "duration": 35.76,
+ "nominal_bph": 18000.0,
+ "reference": "nominal",
+ "bph_mismatch": false,
+ "tolerance_s_per_day": 10.0,
+ "cuts": [],
+ "segments": [
+  {
+   "name": "구간 1",
+   "start": 0.15,
+   "end": 35.46,
+   "rate_s_per_day": 325.8,
+   "ci95": 12.2,
+   "headline": "하루 5분 26초 빠름",
+   "grade": {
+    "key": "critical",
+    "label": "크게 어긋남"
+   },
+   "action": "조속 레버를 느림(-, S) 쪽으로 옮기세요.",
+   "next_step": {
+    "previous": "2026_10_23_06_48_14",
+    "change": 1198.1,
+    "advice": "직전과 반대 방향으로, 그때 옮긴 거리의 약 0.3배 되돌리세요."
+   },
+   "drift_s": {
+    "1일": 325.8,
+    "1주": 2280.4,
+    "30일": 9773.1
+   },
+   "beat_error_ms": 2.13,
+   "beat_error_grade": {
+    "key": "good",
+    "label": "양호"
+   },
+   "stability": {
+    "min": 323.7,
+    "max": 342.2,
+    "spread": 18.5,
+    "label": "약간 흔들림"
+   },
+   "windows": [
+    [
+     0.2,
+     10.2,
+     342.2
+    ],
+    [
+     10.2,
+     20.2,
+     323.7
+    ],
+    [
+     20.2,
+     30.2,
+     324.1
+    ]
+   ],
+   "quality": {
+    "level": "보통",
+    "reasons": [
+     "녹음이 짧음(35초)"
+    ],
+    "tips": [
+     "1분 이상 녹음하면 더 정확해집니다."
+    ],
+    "ticks_used": 177,
+    "ticks_expected": 177,
+    "recovered": 0,
+    "noise_clicks": 0,
+    "jitter_us": 447
+   },
+   "amplitude": {
+    "deg": 285,
+    "lo": 259,
+    "hi": 304,
+    "tick_deg": 303,
+    "tock_deg": 268,
+    "unlock_to_drop_ms": [
+     10.9,
+     12.33
+    ],
+    "lift_angle": 52.0,
+    "reliable": false,
+    "grade": {
+     "key": "good",
+     "label": "좋음"
+    }
+   },
+   "measured_bph": 18067.87
+  }
+ ],
+ "other_clocks": [
+  {
+   "band_hz": [
+    800,
+    1500
+   ],
+   "score": 0.68,
+   "beat_s": 1.000176,
+   "measured_bph": 3599.37,
+   "nominal_bph": 3600,
+   "quartz": true,
+   "rate_s_per_day": -15.2,
+   "ci95": 28.0,
+   "main_minus_this": {
+    "rate_s_per_day": 341.0,
+    "ci95": 30.6
+   },
+   "beat_error_ms": 4.06,
+   "quality": {
+    "ticks_used": 34,
+    "ticks_expected": 34,
+    "noise_clicks": 5,
+    "jitter_us": 7932
+   }
+  }
+ ]
+}

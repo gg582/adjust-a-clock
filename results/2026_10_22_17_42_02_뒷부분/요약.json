@@ -1,0 +1,147 @@
+{
+ "file": "recordings/2026_10_22_17_42_02_뒷부분.mp3",
+ "duration": 11.94,
+ "nominal_bph": 18000.0,
+ "reference": "nominal",
+ "bph_mismatch": false,
+ "tolerance_s_per_day": 10.0,
+ "cuts": [],
+ "segments": [
+  {
+   "name": "구간 1",
+   "start": 0.15,
+   "end": 11.64,
+   "rate_s_per_day": 213.5,
+   "ci95": 11.2,
+   "headline": "하루 3분 34초 빠름",
+   "grade": {
+    "key": "critical",
+    "label": "크게 어긋남"
+   },
+   "action": "조속 레버를 느림(-, S) 쪽으로 옮기세요.",
+   "next_step": {
+    "previous": "2026_10_22_17_38_20",
+    "change": 3870.9,
+    "advice": "직전과 반대 방향으로, 그때 옮긴 거리의 약 0.1배 되돌리세요."
+   },
+   "drift_s": {
+    "1일": 213.5,
+    "1주": 1494.5,
+    "30일": 6405.1
+   },
+   "beat_error_ms": 13.4,
+   "beat_error_grade": {
+    "key": "serious",
+    "label": "큼 — 비트 조정(밸런스 정지 위치 맞춤) 권장"
+   },
+   "stability": null,
+   "windows": [],
+   "quality": {
+    "level": "낮음",
+    "reasons": [
+     "녹음이 짧음(11초)"
+    ],
+    "tips": [
+     "1분 이상 녹음하면 더 정확해집니다."
+    ],
+    "ticks_used": 58,
+    "ticks_expected": 58,
+    "recovered": 0,
+    "noise_clicks": 0,
+    "jitter_us": 1604
+   },
+   "amplitude": {
+    "deg": 170,
+    "lo": 140,
+    "hi": 380,
+    "tick_deg": 142,
+    "tock_deg": 197,
+    "unlock_to_drop_ms": [
+     23.31,
+     16.79
+    ],
+    "lift_angle": 52.0,
+    "reliable": false,
+    "grade": {
+     "key": "serious",
+     "label": "낮음 — 태엽 감김·주유·오염 확인"
+    }
+   },
+   "measured_bph": 18044.48
+  }
+ ],
+ "other_clocks": [
+  {
+   "band_hz": [
+    6000,
+    12000
+   ],
+   "score": 0.36,
+   "beat_s": 0.199511,
+   "measured_bph": 18044.16,
+   "nominal_bph": 18000,
+   "quartz": false,
+   "rate_s_per_day": 212.0,
+   "ci95": 28.6,
+   "main_minus_this": {
+    "rate_s_per_day": 1.5,
+    "ci95": 30.7
+   },
+   "beat_error_ms": 13.38,
+   "quality": {
+    "ticks_used": 55,
+    "ticks_expected": 59,
+    "noise_clicks": 4,
+    "jitter_us": 1925
+   }
+  },
+  {
+   "band_hz": [
+    6000,
+    12000
+   ],
+   "score": 0.36,
+   "beat_s": 0.199511,
+   "measured_bph": 18044.14,
+   "nominal_bph": 18000,
+   "quartz": false,
+   "rate_s_per_day": 211.9,
+   "ci95": 28.7,
+   "main_minus_this": {
+    "rate_s_per_day": 1.6,
+    "ci95": 30.8
+   },
+   "beat_error_ms": 13.38,
+   "quality": {
+    "ticks_used": 55,
+    "ticks_expected": 59,
+    "noise_clicks": 4,
+    "jitter_us": 1934
+   }
+  },
+  {
+   "band_hz": [
+    6000,
+    12000
+   ],
+   "score": 0.36,
+   "beat_s": 0.199511,
+   "measured_bph": 18044.14,
+   "nominal_bph": 18000,
+   "quartz": false,
+   "rate_s_per_day": 211.9,
+   "ci95": 28.7,
+   "main_minus_this": {
+    "rate_s_per_day": 1.6,
+    "ci95": 30.8
+   },
+   "beat_error_ms": 13.39,
+   "quality": {
+    "ticks_used": 55,
+    "ticks_expected": 59,
+    "noise_clicks": 4,
+    "jitter_us": 1937
+   }
+  }
+ ]
+}

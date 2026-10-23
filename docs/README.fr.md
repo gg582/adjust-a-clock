@@ -199,7 +199,7 @@ clock-rate 녹음.m4a --시트 sheets/slava_5671.ini
 Sur les enregistrements synthétiques de `tests/` (bruit urbain, bruit de raquette, erreur de battement, tics fort/faible et bruit d'unlock inclus), l'écart journalier est exact à 0,5 s/jour près et l'amplitude à 8° près.
 Sur un enregistrement synthétique mêlé d'un petit tic de quartz (1 kHz) en arrière-plan, `--multi-clock` retrouve l'écart journalier du quartz à 1 s/jour près, et ne trouve rien sur les enregistrements sans autre montre (tics fort/faible inclus).
 Sur un enregistrement réel (Slava 5671), la valeur de l'outil (+8,4 ± 0,6 s/jour) a concordé avec celle d'une application timegrapher Android (+7 s/jour).
-Cas de réglage réel (22–23 octobre 2026) : une Slava 5671 qui avançait de 14 min 43 s par jour a été réglée, en suivant les indications de l'outil (longueur active du spiral et raquette), jusqu'à **+0,6 s/jour** (mesure 18000,1 bph, validation croisée avec la montre à quartz d'arrière-plan : +3,4 ± 28,7 s/jour). Le déroulement se trouve dans [`docs/slava_5671_regulation_notes.md`](slava_5671_regulation_notes.md).
+Cas de réglage réel (22–23 octobre 2026) : une Slava 5671 qui avançait de 14 min 43 s par jour a été réglée, en suivant les indications de l'outil (longueur active du spiral et raquette), jusqu'à **+0,6 s/jour** (mesure 18000,1 bph, validation croisée avec la montre à quartz d'arrière-plan : +3,4 ± 28,7 s/jour). Le déroulement se trouve dans [`docs/slava_5671_regulation_notes.fr.md`](slava_5671_regulation_notes.fr.md).
 
 ```bash
 python3 -m pytest
@@ -224,9 +224,9 @@ clockrate/
 sheets/         무브먼트 사양 시트 (slava_5671.ini, _template.ini)
 examples/       실제 녹음 6개와 그 점검 결과 (examples/README.md)
 tests/          합성 신호 테스트
-recordings/     녹음 (git 제외)
+recordings/     녹음
 photos/         사진 (git 제외)
-results/        분석 결과 (git 제외)
+results/        분석 결과 (소음 제거 wav는 git 제외)
 ```
 
 Pour les graphiques en coréen, l'outil utilise la première police installée parmi NanumBarunGothic, NanumGothic, Noto Sans CJK KR, Malgun Gothic et AppleGothic.

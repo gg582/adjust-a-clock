@@ -1,0 +1,96 @@
+{
+ "file": "recordings/2026_10_22_18_30_15.mp3",
+ "duration": 58.15,
+ "nominal_bph": 18000.0,
+ "reference": "nominal",
+ "bph_mismatch": false,
+ "tolerance_s_per_day": 10.0,
+ "cuts": [],
+ "segments": [
+  {
+   "name": "구간 1",
+   "start": 0.15,
+   "end": 57.85,
+   "rate_s_per_day": -12.4,
+   "ci95": 160.9,
+   "headline": "하루 12초 느림",
+   "grade": {
+    "key": "warning",
+    "label": "미세 조정 권장"
+   },
+   "action": "조속 레버를 빠름(+, F) 쪽으로 옮기세요.",
+   "next_step": null,
+   "drift_s": {
+    "1일": -12.4,
+    "1주": -86.5,
+    "30일": -370.6
+   },
+   "beat_error_ms": 13.29,
+   "beat_error_grade": {
+    "key": "serious",
+    "label": "큼 — 비트 조정(밸런스 정지 위치 맞춤) 권장"
+   },
+   "stability": {
+    "min": -261.2,
+    "max": 218.3,
+    "spread": 479.4,
+    "label": "불안정 — 태엽·자세·녹음 상태 확인"
+   },
+   "windows": [
+    [
+     0.3,
+     10.3,
+     218.3
+    ],
+    [
+     10.3,
+     20.3,
+     -261.2
+    ],
+    [
+     20.3,
+     30.3,
+     35.9
+    ],
+    [
+     30.3,
+     40.3,
+     117.8
+    ],
+    [
+     40.3,
+     50.3,
+     -14.9
+    ]
+   ],
+   "quality": {
+    "level": "높음",
+    "reasons": [],
+    "tips": [],
+    "ticks_used": 288,
+    "ticks_expected": 288,
+    "recovered": 0,
+    "noise_clicks": 0,
+    "jitter_us": 8225
+   },
+   "amplitude": {
+    "deg": 264,
+    "lo": 143,
+    "hi": 380,
+    "tick_deg": 379,
+    "tock_deg": 150,
+    "unlock_to_drop_ms": [
+     8.75,
+     22.15
+    ],
+    "lift_angle": 52.0,
+    "reliable": false,
+    "grade": {
+     "key": "good",
+     "label": "좋음"
+    }
+   },
+   "measured_bph": 17997.43
+  }
+ ]
+}

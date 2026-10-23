@@ -225,9 +225,9 @@ clockrate/
 sheets/         무브먼트 사양 시트 (slava_5671.ini, _template.ini)
 examples/       실제 녹음 6개와 그 점검 결과 (examples/README.md)
 tests/          합성 신호 테스트
-recordings/     녹음 (git 제외)
+recordings/     녹음
 photos/         사진 (git 제외)
-results/        분석 결과 (git 제외)
+results/        분석 결과 (소음 제거 wav는 git 제외)
 ```
 
 한국어 그래프에는 나눔바른고딕, 나눔고딕, Noto Sans CJK KR, 맑은 고딕, AppleGothic 중 설치된 글꼴을 씁니다.

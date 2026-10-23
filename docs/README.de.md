@@ -199,7 +199,7 @@ clock-rate 녹음.m4a --시트 sheets/slava_5671.ini
 In den synthetischen Aufnahmen in `tests/` (mit Stadtlärm, Rückergeräusch, Schlagfehler, stark/schwachen Ticks und Entriegelungsgeräusch) liegt die Tagesgangabweichung innerhalb von 0,5 s/Tag und die Amplitude innerhalb von 8° am Sollwert.
 In synthetischen Aufnahmen mit leisem Quarz-Tick (1 kHz) im Hintergrund findet `--multi-clock` die Tagesgangabweichung der Quarzuhr innerhalb von 1 s/Tag am Sollwert und findet in Aufnahmen ohne weitere Uhr (auch mit stark/schwachen Ticks) nichts.
 Bei einer echten Aufnahme (Slava 5671) stimmte der Wert einer Android-Zeitwaagen-App (+7 s/Tag) mit dem Wert dieses Tools (+8,4 ± 0,6 s/Tag) überein.
-Praxisbeispiel einer Regulierung (22.–23.10.2026): Eine Slava 5671, die 14 min 43 s pro Tag vorging, wurde nach Anleitung dieses Tools über die wirksame Spiralfederlänge und den Rückerzeiger auf **+0,6 s/Tag** gebracht (gemessen 18000,1 bph, Gegenprobe mit der Hintergrund-Quarzuhr +3,4 ± 28,7 s/Tag). Der Ablauf steht in [`docs/slava_5671_regulation_notes.md`](docs/slava_5671_regulation_notes.md).
+Praxisbeispiel einer Regulierung (22.–23.10.2026): Eine Slava 5671, die 14 min 43 s pro Tag vorging, wurde nach Anleitung dieses Tools über die wirksame Spiralfederlänge und den Rückerzeiger auf **+0,6 s/Tag** gebracht (gemessen 18000,1 bph, Gegenprobe mit der Hintergrund-Quarzuhr +3,4 ± 28,7 s/Tag). Der Ablauf steht in [`docs/slava_5671_regulation_notes.de.md`](docs/slava_5671_regulation_notes.de.md).
 
 ```bash
 python3 -m pytest
@@ -224,9 +224,9 @@ clockrate/
 sheets/         무브먼트 사양 시트 (slava_5671.ini, _template.ini)
 examples/       실제 녹음 6개와 그 점검 결과 (examples/README.md)
 tests/          합성 신호 테스트
-recordings/     녹음 (git 제외)
+recordings/     녹음
 photos/         사진 (git 제외)
-results/        분석 결과 (git 제외)
+results/        분석 결과 (소음 제거 wav는 git 제외)
 ```
 
 Für die Grafiken wird die erste installierte Schrift aus NanumBarunGothic, NanumGothic, Noto Sans CJK KR, Malgun Gothic, AppleGothic verwendet.

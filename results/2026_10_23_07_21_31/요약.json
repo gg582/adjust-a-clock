@@ -1,0 +1,99 @@
+{
+ "file": "recordings/2026_10_23_07_21_31.mp3",
+ "duration": 14.94,
+ "nominal_bph": 18000.0,
+ "reference": "nominal",
+ "bph_mismatch": false,
+ "tolerance_s_per_day": 10.0,
+ "cuts": [],
+ "segments": [
+  {
+   "name": "구간 1",
+   "start": 0.15,
+   "end": 14.64,
+   "rate_s_per_day": 253.4,
+   "ci95": 2.6,
+   "headline": "하루 4분 13초 빠름",
+   "grade": {
+    "key": "critical",
+    "label": "크게 어긋남"
+   },
+   "action": "조속 레버를 느림(-, S) 쪽으로 옮기세요.",
+   "next_step": {
+    "previous": "2026_10_23_07_20_09",
+    "change": 15.5,
+    "advice": "직전과 반대 방향으로, 그때 옮긴 거리의 약 16.3배 되돌리세요. 한 번에 다 옮기지 말고 나눠서 확인하세요."
+   },
+   "drift_s": {
+    "1일": 253.4,
+    "1주": 1774.1,
+    "30일": 7603.2
+   },
+   "beat_error_ms": 1.82,
+   "beat_error_grade": {
+    "key": "good",
+    "label": "양호"
+   },
+   "stability": null,
+   "windows": [],
+   "quality": {
+    "level": "낮음",
+    "reasons": [
+     "녹음이 짧음(14초)"
+    ],
+    "tips": [
+     "1분 이상 녹음하면 더 정확해집니다."
+    ],
+    "ticks_used": 72,
+    "ticks_expected": 72,
+    "recovered": 0,
+    "noise_clicks": 0,
+    "jitter_us": 517
+   },
+   "amplitude": {
+    "deg": 323,
+    "lo": 276,
+    "hi": 359,
+    "tick_deg": 335,
+    "tock_deg": 312,
+    "unlock_to_drop_ms": [
+     9.88,
+     10.6
+    ],
+    "lift_angle": 52.0,
+    "reliable": false,
+    "grade": {
+     "key": "good",
+     "label": "좋음"
+    }
+   },
+   "measured_bph": 18052.8
+  }
+ ],
+ "other_clocks": [
+  {
+   "band_hz": [
+    800,
+    1500
+   ],
+   "score": 0.43,
+   "beat_s": 0.999658,
+   "measured_bph": 3601.23,
+   "nominal_bph": 3600,
+   "quartz": true,
+   "rate_s_per_day": 29.6,
+   "ci95": 110.7,
+   "main_minus_this": {
+    "rate_s_per_day": 223.8,
+    "ci95": 110.7
+   },
+   "beat_error_ms": 8.45,
+   "quality": {
+    "ticks_used": 15,
+    "ticks_expected": 15,
+    "noise_clicks": 1,
+    "jitter_us": 9582
+   }
+  }
+ ]
+}

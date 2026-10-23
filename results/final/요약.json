@@ -1,0 +1,115 @@
+{
+ "file": "recordings/final.mp3",
+ "duration": 23.48,
+ "nominal_bph": 18000.0,
+ "reference": "nominal",
+ "bph_mismatch": false,
+ "tolerance_s_per_day": 10.0,
+ "cuts": [],
+ "segments": [
+  {
+   "name": "구간 1",
+   "start": 0.15,
+   "end": 23.18,
+   "rate_s_per_day": 34.7,
+   "ci95": 3.5,
+   "headline": "하루 35초 빠름",
+   "grade": {
+    "key": "serious",
+    "label": "조정 필요"
+   },
+   "action": "조속 레버를 느림(-, S) 쪽으로 옮기세요.",
+   "next_step": {
+    "previous": "2026_10_23_07_53_18",
+    "change": -30.4,
+    "advice": "직전에 옮긴 방향으로, 그때 옮긴 거리의 약 1.1배 더 옮기세요."
+   },
+   "drift_s": {
+    "1일": 34.7,
+    "1주": 243.2,
+    "30일": 1042.3
+   },
+   "beat_error_ms": 9.57,
+   "beat_error_grade": {
+    "key": "serious",
+    "label": "큼 — 비트 조정(밸런스 정지 위치 맞춤) 권장"
+   },
+   "stability": {
+    "min": 3.3,
+    "max": 70.3,
+    "spread": 67.0,
+    "label": "불안정 — 태엽·자세·녹음 상태 확인"
+   },
+   "windows": [
+    [
+     0.2,
+     10.2,
+     70.3
+    ],
+    [
+     10.2,
+     20.2,
+     3.3
+    ]
+   ],
+   "quality": {
+    "level": "보통",
+    "reasons": [
+     "녹음이 짧음(23초)"
+    ],
+    "tips": [
+     "1분 이상 녹음하면 더 정확해집니다."
+    ],
+    "ticks_used": 115,
+    "ticks_expected": 115,
+    "recovered": 0,
+    "noise_clicks": 1,
+    "jitter_us": 1421
+   },
+   "amplitude": {
+    "deg": 301,
+    "lo": 290,
+    "hi": 322,
+    "tick_deg": 292,
+    "tock_deg": 311,
+    "unlock_to_drop_ms": [
+     11.33,
+     10.67
+    ],
+    "lift_angle": 52.0,
+    "reliable": true,
+    "grade": {
+     "key": "good",
+     "label": "좋음"
+    }
+   },
+   "measured_bph": 18007.24
+  }
+ ],
+ "other_clocks": [
+  {
+   "band_hz": [
+    800,
+    1500
+   ],
+   "score": 0.8,
+   "beat_s": 0.999992,
+   "measured_bph": 3600.03,
+   "nominal_bph": 3600,
+   "quartz": true,
+   "rate_s_per_day": 0.7,
+   "ci95": 27.4,
+   "main_minus_this": {
+    "rate_s_per_day": 34.1,
+    "ci95": 27.6
+   },
+   "beat_error_ms": 5.88,
+   "quality": {
+    "ticks_used": 22,
+    "ticks_expected": 23,
+    "noise_clicks": 2,
+    "jitter_us": 4662
+   }
+  }
+ ]
+}

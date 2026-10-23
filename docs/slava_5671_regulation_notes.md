@@ -1,3 +1,5 @@
+[한국어](slava_5671_regulation_notes.md) | [English](slava_5671_regulation_notes.en.md) | [Русский](slava_5671_regulation_notes.ru.md) | [Deutsch](slava_5671_regulation_notes.de.md) | [Français](slava_5671_regulation_notes.fr.md)
+
 # Slava 5671 조정 사례 노트 (2026-10-22~23)
 
 `clock-rate`로 Slava 5671 자명종을 실제로 조정한 기록입니다. 측정값은 `results/조정기록.json`에 그대로 남아 있습니다.
