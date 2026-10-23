@@ -1,4 +1,4 @@
-"""한국어 그래프: 조정 리포트 한 장, 조정 기록, (선택) 진단 그래프."""
+"""보고서 그래프: 조정 리포트 한 장, 조정 기록, (선택) 진단 그래프."""
 import numpy as np
 import scipy.signal as s
 import matplotlib
@@ -9,6 +9,7 @@ from matplotlib.gridspec import GridSpec
 from matplotlib.patches import FancyBboxPatch
 
 from .advice import DEFAULT_TOLERANCE, fmt_duration
+from .i18n import get_lang, tr
 
 SURF, INK, INK2, GRID = '#fcfcfb', '#0b0b0b', '#52514e', '#e4e3df'
 COLORS = ['#2a78d6', '#eb6834', '#1baf7a', '#eda100', '#e87ba4', '#008300', '#4a3aa7', '#e34948']
@@ -19,7 +20,8 @@ MS_PER_S_PER_DAY = 1000 / 86400      # 하루 1초 오차일 때 1초당 쌓이�
 
 def setup_style():
     have = {f.name for f in fm.fontManager.ttflist}
-    font = next((f for f in KOREAN_FONTS if f in have), 'DejaVu Sans')
+    # 한국어는 CJK 글꼴이 필요하고, 그 외 언어는 기본 DejaVu(라틴·키릴 문자 포함)로 충분하다
+    font = next((f for f in KOREAN_FONTS if f in have), 'DejaVu Sans') if get_lang() == 'ko' else 'DejaVu Sans'
     plt.rcParams.update({
         'font.family': font, 'axes.unicode_minus': False, 'figure.facecolor': SURF, 'axes.facecolor': SURF,
         'axes.edgecolor': INK2, 'axes.labelcolor': INK, 'xtick.color': INK2, 'ytick.color': INK2, 'text.color': INK,
@@ -45,34 +47,35 @@ def _pill(ax, x, y, grade, size=13):
 def _banner(ax, name, an, facts_list):
     ax.axis('off')
     ax.text(0, 1.0, name, transform=ax.transAxes, fontsize=12, color=INK2, va='top')
-    ref = f'{an.nominal_bph:.0f} bph 기준' if an.reference == 'nominal' else '구간 1 기준'
-    ax.text(1, 1.0, f'녹음 {an.duration:.0f}초 · {ref}', transform=ax.transAxes, fontsize=11, color=INK2,
-            va='top', ha='right')
+    ref = tr('{bph:.0f} bph 기준', bph=an.nominal_bph) if an.reference == 'nominal' else tr('구간 1 기준')
+    ax.text(1, 1.0, tr('녹음 {dur:.0f}초 · {ref}', dur=an.duration, ref=ref), transform=ax.transAxes, fontsize=11,
+            color=INK2, va='top', ha='right')
     if len(facts_list) == 1:
         sg, fx = facts_list[0]
         _pill(ax, 0, .66, fx['grade'], 14)
         ax.text(.17, .66, fx['headline'], transform=ax.transAxes, fontsize=30, fontweight='bold', va='center')
-        ax.text(.99, .66, f'{sg.rate:+.1f} ± {2 * sg.rate_se:.1f} 초/일', transform=ax.transAxes, fontsize=13,
+        ax.text(.99, .66, f'{sg.rate:+.1f} ± {2 * sg.rate_se:.1f} {tr("초/일")}', transform=ax.transAxes, fontsize=13,
                 color=INK2, va='center', ha='right')
         action = fx['lever']
         if fx['step']:
-            action += f'\n직전 녹음({fx["step"][0]}) 대비 {fx["step"][1]:+.1f} 초/일 → {fx["step"][2]}'
-        ax.text(0, .36, '할 일  ' + action, transform=ax.transAxes, fontsize=13, fontweight='bold', va='top',
-                linespacing=1.7)
+            action += '\n' + tr('직전 녹음({pf}) 대비 {d:+.1f} 초/일 → {msg}',
+                                pf=fx['step'][0], d=fx['step'][1], msg=fx['step'][2])
+        ax.text(0, .36, tr('할 일  {action}', action=action), transform=ax.transAxes, fontsize=13, fontweight='bold',
+                va='top', linespacing=1.7)
     else:
         y = .78
         for k, (sg, fx) in enumerate(facts_list):
             ax.plot([0.005], [y], 's', ms=11, color=color(k), transform=ax.transAxes, clip_on=False)
-            txt = f'{sg.name}   기준 구간' if sg.is_reference else \
-                f'{sg.name}   {fx["headline"]}  ({sg.rate:+.1f} ± {2 * sg.rate_se:.1f} 초/일)'
+            txt = tr('{name}   기준 구간', name=sg.name) if sg.is_reference else \
+                f'{sg.name}   {fx["headline"]}  ({sg.rate:+.1f} ± {2 * sg.rate_se:.1f} {tr("초/일")})'
             if not sg.is_reference and abs(sg.rate) <= 2 * sg.rate_se:
-                txt += '  — 오차 범위 안'
+                txt += tr('  — 오차 범위 안')
             ax.text(.025, y, txt, transform=ax.transAxes, fontsize=14, fontweight='bold', va='center')
             y -= .22
 
 
 def _gauge(ax, facts_list, tol, relative=False):
-    ax.set_title('구간 1 대비 변화' if relative else '목표 범위와 지금 위치')
+    ax.set_title(tr('구간 1 대비 변화') if relative else tr('목표 범위와 지금 위치'))
     worst = max(abs(sg.rate) + 2 * sg.rate_se for sg, _ in facts_list)
     R = max(90, worst * 1.15)
     edges = [0, tol, 3 * tol, 60, R]
@@ -87,37 +90,38 @@ def _gauge(ax, facts_list, tol, relative=False):
         c = color(k)
         ax.errorbar(sg.rate, y, xerr=2 * sg.rate_se, fmt='o', color=c, ms=11, mec=SURF, mew=2, capsize=6, lw=2)
         if len(facts_list) == 1:
-            ax.annotate(f'지금 {sg.rate:+.0f}', (sg.rate, y), xytext=(0, 14), textcoords='offset points',
+            ax.annotate(tr('지금 {rate:+.0f}', rate=sg.rate), (sg.rate, y), xytext=(0, 14), textcoords='offset points',
                         ha='center', fontsize=11, fontweight='bold')
         else:
             ax.annotate(f'{sg.name}  {sg.rate:+.0f}', (sg.rate + 2 * sg.rate_se, y), xytext=(10, 0),
                         textcoords='offset points', va='center', fontsize=10.5, fontweight='bold')
     ax.set_xlim(-R, R); ax.set_ylim(0, 1); ax.set_yticks([]); ax.grid(axis='y', visible=False)
     ax.spines['left'].set_visible(False)
-    ax.set_xlabel('하루 오차 (초/일)    ← 느림 | 빠름 →')
-    for lim, txt in ((tol, f'목표 ±{tol:.0f}'), (60, '±1분')):
+    ax.set_xlabel(tr('하루 오차 (초/일)    ← 느림 | 빠름 →'))
+    for lim, txt in ((tol, tr('목표 ±{tol:.0f}', tol=tol)), (60, tr('±1분'))):
         if lim < R and not relative:
             ax.text(lim, .97, f' {txt}', fontsize=9.5, color=INK2, va='top')
 
 
 def _facts_box(ax, sg, fx):
     ax.axis('off')
-    ax.set_title('숫자로 보기')
+    ax.set_title(tr('숫자로 보기'))
     f = sg.fit
     d = fx['drift']
     level, det, reasons, _ = fx['quality']
     st = fx['stability']
-    rows = [('이대로 두면', ''),
-            ('   1일', ('+' if d['1일'] > 0 else '-') + fmt_duration(d['1일'])),
-            ('   1주', ('+' if d['1주'] > 0 else '-') + fmt_duration(d['1주'])),
-            ('   30일', ('+' if d['30일'] > 0 else '-') + fmt_duration(d['30일'])),
-            ('비트 에러', f'{f.beat_err * 1000:.1f} ms  {fx["beat"].icon} {fx["beat"].label.split(" —")[0]}'),
-            ('진폭', (f'약 {sg.amplitude.deg:.0f}°  ' + (f'{fx["amp"].icon} {fx["amp"].label.split(" —")[0]}'
-                                                      if sg.amplitude.reliable else '(참고용)'))
-             if sg.amplitude else '측정 못 함'),
-            ('속도 안정성', f'폭 {st[2]:.0f} 초/일 · {st[3].split(" —")[0]}' if st else '녹음이 짧아 생략'),
-            ('측정 신뢰도', f'{level} (틱 {len(f.ticks)}/{f.expected})'),
-            ('실측 진동수', f'{sg.bph:.1f} bph')]
+    rows = [(tr('이대로 두면'), ''),
+            (tr('   1일'), ('+' if d['1일'] > 0 else '-') + fmt_duration(d['1일'])),
+            (tr('   1주'), ('+' if d['1주'] > 0 else '-') + fmt_duration(d['1주'])),
+            (tr('   30일'), ('+' if d['30일'] > 0 else '-') + fmt_duration(d['30일'])),
+            (tr('비트 에러'), f'{f.beat_err * 1000:.1f} ms  {fx["beat"].icon} {fx["beat"].label.split(" —")[0]}'),
+            (tr('진폭'), (tr('약 {deg:.0f}°', deg=sg.amplitude.deg) + '  ' + (f'{fx["amp"].icon} {fx["amp"].label.split(" —")[0]}'
+                                                      if sg.amplitude.reliable else tr('(참고용)')))
+             if sg.amplitude else tr('측정 못 함')),
+            (tr('속도 안정성'), tr('폭 {spread:.0f} 초/일 · {word}', spread=st[2], word=st[3].split(' —')[0])
+             if st else tr('녹음이 짧아 생략')),
+            (tr('측정 신뢰도'), tr('{level} (틱 {used}/{expected})', level=level, used=len(f.ticks), expected=f.expected)),
+            (tr('실측 진동수'), f'{sg.bph:.1f} bph')]
     y = .95
     for k, v in rows:
         ax.text(0, y, k, transform=ax.transAxes, fontsize=11.5, color=INK2 if k.startswith('   ') else INK,
@@ -128,28 +132,29 @@ def _facts_box(ax, sg, fx):
 
 def _compare_box(ax, facts_list):
     ax.axis('off')
-    ax.set_title('구간별 비교')
+    ax.set_title(tr('구간별 비교'))
     y = .95
     for k, (sg, fx) in enumerate(facts_list):
         ax.plot([0.01], [y - .03], 's', ms=10, color=color(k), transform=ax.transAxes, clip_on=False)
         ax.text(.06, y, sg.name, transform=ax.transAxes, fontsize=11.5, fontweight='bold', va='top')
         if sg.is_reference:
-            v = '기준'
+            v = tr('기준')
         elif abs(sg.rate) <= 2 * sg.rate_se:
-            v = f'{sg.rate:+.1f}±{2 * sg.rate_se:.1f} · 차이 없음'
+            v = tr('{rate:+.1f}±{ci:.1f} · 차이 없음', rate=sg.rate, ci=2 * sg.rate_se)
         else:
-            v = f'{sg.rate:+.1f}±{2 * sg.rate_se:.1f} · {"빨라짐" if sg.rate > 0 else "느려짐"}'
+            v = tr('{rate:+.1f}±{ci:.1f} · {dir}', rate=sg.rate, ci=2 * sg.rate_se,
+                   dir=tr('빨라짐') if sg.rate > 0 else tr('느려짐'))
         ax.text(1, y - .11, v, transform=ax.transAxes, fontsize=11, va='top', ha='right')
-        ax.text(.06, y - .11, f'비트 에러 {sg.fit.beat_err * 1000:.1f} ms', transform=ax.transAxes, fontsize=10.5,
-                color=INK2, va='top')
+        ax.text(.06, y - .11, tr('비트 에러 {be:.1f} ms', be=sg.fit.beat_err * 1000), transform=ax.transAxes,
+                fontsize=10.5, color=INK2, va='top')
         y -= .27
 
 
 def _timegrapher(ax, an, tol):
     single = len(an.segments) == 1
     relative = an.reference == 'first'
-    ax.set_title('타임그래퍼 — 선이 위로 가면 빠름, 아래로 가면 느림'
-                 + ('' if relative else '. 회색 부채꼴 안이면 목표 범위'))
+    ax.set_title(tr('타임그래퍼 — 선이 위로 가면 빠름, 아래로 가면 느림')
+                 + ('' if relative else tr('. 회색 부채꼴 안이면 목표 범위')))
     for k, sg in enumerate(an.segments):
         f = sg.fit
         t0 = f.ticks[0]
@@ -160,7 +165,7 @@ def _timegrapher(ax, an, tol):
         ahead -= np.median(ahead[f.parity == f.parity[0]][:5])
         x = f.ticks if not single else f.ticks - t0
         if single:
-            for p, c, lab in ((0, COLORS[0], '틱'), (1, COLORS[1], '톡')):
+            for p, c, lab in ((0, COLORS[0], tr('틱')), (1, COLORS[1], tr('톡'))):
                 m = f.parity == p
                 ax.plot(x[m], ahead[m], 'o', ms=3.2 if len(x) > 200 else 5, color=c, mec='none', label=lab)
         else:
@@ -171,17 +176,17 @@ def _timegrapher(ax, an, tol):
             cone = (xx - x[0]) * tol * MS_PER_S_PER_DAY
             ax.fill_between(xx, -cone, cone, color=INK2, alpha=.12, lw=0)
     ax.axhline(0, color=INK2, lw=1)
-    ax.set_xlabel('녹음 시간 (초)'); ax.set_ylabel('기준보다 앞선 시간 (ms)')
+    ax.set_xlabel(tr('녹음 시간 (초)')); ax.set_ylabel(tr('기준보다 앞선 시간 (ms)'))
     ax.legend(frameon=False, loc='best', markerscale=2)
     if single:
         be = an.segments[0].fit.beat_err * 1000
         top = an.segments[0].rate < 0                  # 점들이 내려가면 위쪽 빈 곳에 적는다
-        ax.text(.99, .96 if top else .03, f'틱·톡 두 줄의 간격 = 비트 에러 {be:.1f} ms', transform=ax.transAxes,
-                ha='right', va='top' if top else 'bottom', fontsize=10, color=INK2)
+        ax.text(.99, .96 if top else .03, tr('틱·톡 두 줄의 간격 = 비트 에러 {be:.1f} ms', be=be),
+                transform=ax.transAxes, ha='right', va='top' if top else 'bottom', fontsize=10, color=INK2)
 
 
 def _stability(ax, an, tol):
-    ax.set_title('시간대별 오차 — 점들이 고르면 속도가 안정적')
+    ax.set_title(tr('시간대별 오차 — 점들이 고르면 속도가 안정적'))
     any_w = False
     for k, sg in enumerate(an.segments):
         if not sg.windows:
@@ -195,7 +200,7 @@ def _stability(ax, an, tol):
             ax.annotate(f'{v:+.0f}', (xm, v), xytext=(0, 9), textcoords='offset points', ha='center', fontsize=9.5)
         ax.hlines(sg.rate, sg.windows[0][0], sg.windows[-1][1], color=c, lw=1, ls=(0, (4, 3)))
     if not any_w:
-        ax.text(.5, .5, '녹음이 20초 이상이어야 표시됩니다', transform=ax.transAxes, ha='center', va='center',
+        ax.text(.5, .5, tr('녹음이 20초 이상이어야 표시됩니다'), transform=ax.transAxes, ha='center', va='center',
                 color=INK2, fontsize=12)
         ax.set_xticks([]); ax.set_yticks([])
         return
@@ -207,10 +212,11 @@ def _stability(ax, an, tol):
         ax.axhspan(-tol, tol, color=STATUS['good'], alpha=.2, lw=0)
         ax.axhline(0, color=INK2, lw=1)
     else:
-        ax.text(.99, .04, f'목표(±{tol:.0f})는 이 범위 {"아래" if lo > 0 else "위"}에 있음', transform=ax.transAxes,
+        ax.text(.99, .04, tr('목표(±{tol:.0f})는 이 범위 아래에 있음', tol=tol) if lo > 0
+                else tr('목표(±{tol:.0f})는 이 범위 위에 있음', tol=tol), transform=ax.transAxes,
                 ha='right', fontsize=10, color=INK2)
     ax.set_ylim(lo, hi)
-    ax.set_xlabel('녹음 시간 (초)'); ax.set_ylabel('하루 오차 (초/일)')
+    ax.set_xlabel(tr('녹음 시간 (초)')); ax.set_ylabel(tr('하루 오차 (초/일)'))
 
 
 def plot_report(an, name, path, facts_list, tol=DEFAULT_TOLERANCE):
@@ -251,14 +257,15 @@ def plot_history(entries, path, advice=None, tol=DEFAULT_TOLERANCE):
     r = np.array([e['rate'] for e in entries])
     ci = np.array([e['ci95'] for e in entries])
     ax.axhspan(-tol, tol, color=STATUS['good'], alpha=.18, lw=0)
-    ax.text(len(entries) - .5, tol, f'목표 ±{tol:.0f}초/일 ', ha='right', va='bottom', fontsize=10, color=INK2)
+    ax.text(len(entries) - .5, tol, tr('목표 ±{tol:.0f}초/일 ', tol=tol), ha='right', va='bottom', fontsize=10,
+            color=INK2)
     ax.axhline(0, color=INK2, lw=1)
     ax.plot(x, r, '-', color=COLORS[0], lw=2)
     ax.errorbar(x, r, yerr=ci, fmt='o', color=COLORS[0], ms=10, mec=SURF, mew=2, capsize=5, lw=1.5)
     span = max(abs(r).max(), tol) * 1.35
     for xi, v in zip(x, r):
-        ax.annotate(f'{v:+.1f}\n하루 {fmt_duration(v)} {"빠름" if v > 0 else "느림"}', (xi, v),
-                    xytext=(0, 16 if v >= 0 else -16), textcoords='offset points', ha='center',
+        ax.annotate(f'{v:+.1f}\n' + tr('하루 {dur} {dir}', dur=fmt_duration(v), dir=tr('빠름') if v > 0 else tr('느림')),
+                    (xi, v), xytext=(0, 16 if v >= 0 else -16), textcoords='offset points', ha='center',
                     va='bottom' if v >= 0 else 'top', fontsize=10.5)
     ax.set_xticks(x, [e['file'] for e in entries], rotation=0)
     ax.set_xlim(-.5, len(entries) - .5); ax.set_ylim(-span, span)
@@ -270,18 +277,19 @@ def plot_history(entries, path, advice=None, tol=DEFAULT_TOLERANCE):
         for xi, v, good in zip(xa, va, ok):
             ax2.plot(xi, v, 'o', ms=9, mew=2, color=COLORS[2], mfc=COLORS[2] if good else SURF,
                      mec=SURF if good else COLORS[2])
-            ax2.annotate(f'{v:.0f}°' + ('' if good else ' (참고용)'), (xi, v), xytext=(0, 10),
+            ax2.annotate(f'{v:.0f}°' + ('' if good else tr(' (참고용)')), (xi, v), xytext=(0, 10),
                          textcoords='offset points', ha='center', fontsize=10.5)
         ax2.set_ylim(min(va) - 40, max(va) + 45)
-        ax2.set_ylabel('진폭 (°)')
-        ax2.set_title('진폭 — 크게 줄면 태엽이 풀렸거나 무브먼트 상태를 확인 (빈 원은 참고용 값)', fontsize=11,
+        ax2.set_ylabel(tr('진폭 (°)'))
+        ax2.set_title(tr('진폭 — 크게 줄면 태엽이 풀렸거나 무브먼트 상태를 확인 (빈 원은 참고용 값)'), fontsize=11,
                       fontweight='normal', color=INK2)
         ax2.tick_params(labelbottom=True)
-    ax.set_ylabel('하루 오차 (초/일)')
-    ax.set_title('분석한 순서대로 · 위쪽이 빠름, 아래쪽이 느림 · 오차 막대 95% 신뢰구간', fontsize=11, fontweight='normal', color=INK2)
-    fig.suptitle('조정 기록', fontsize=16, fontweight='bold', x=.01, ha='left')
+    ax.set_ylabel(tr('하루 오차 (초/일)'))
+    ax.set_title(tr('분석한 순서대로 · 위쪽이 빠름, 아래쪽이 느림 · 오차 막대 95% 신뢰구간'), fontsize=11,
+                 fontweight='normal', color=INK2)
+    fig.suptitle(tr('조정 기록'), fontsize=16, fontweight='bold', x=.01, ha='left')
     if advice:
-        fig.text(.01, .015, '다음 할 일  ' + advice, fontsize=12, fontweight='bold', va='bottom')
+        fig.text(.01, .015, tr('다음 할 일  {advice}', advice=advice), fontsize=12, fontweight='bold', va='bottom')
     fig.tight_layout(rect=(0, .06 if advice else 0, 1, 1))
     fig.savefig(path, dpi=120)
     plt.close(fig)
@@ -297,14 +305,14 @@ def plot_diagnostics(an, path):
     gs = GridSpec(5, 2, figure=fig, height_ratios=[1, 1, 1, 1, 1.1], hspace=.55)
     ax = [fig.add_subplot(gs[0, :])]
     ax += [fig.add_subplot(gs[i, :], sharex=ax[0]) for i in (1, 2, 3)]
-    ax[0].plot(tt, an.raw, lw=.4, color=INK2); ax[0].set_title('원본 파형'); ax[0].set_ylabel('진폭')
+    ax[0].plot(tt, an.raw, lw=.4, color=INK2); ax[0].set_title(tr('원본 파형')); ax[0].set_ylabel(tr('진폭'))
     f, t, Z = s.stft(an.clean, an.sr, nperseg=1024, noverlap=768)
     ax[1].pcolormesh(t, f / 1000, 20 * np.log10(np.abs(Z) + 1e-9), vmin=-115, vmax=-40, cmap='Greys',
                      shading='auto', rasterized=True)
-    ax[1].set_ylim(0, 18); ax[1].set_ylabel('주파수 (kHz)'); ax[1].grid(False)
-    ax[1].set_title('소음 제거 후 스펙트로그램 (세로줄 하나가 틱 하나)')
+    ax[1].set_ylim(0, 18); ax[1].set_ylabel(tr('주파수 (kHz)')); ax[1].grid(False)
+    ax[1].set_title(tr('소음 제거 후 스펙트로그램 (세로줄 하나가 틱 하나)'))
     ax[2].plot(an.swish_t, an.swish_db, color=INK, lw=1.3); ax[2].axhline(4, color=INK2, ls='--', lw=1)
-    ax[2].set_ylabel('지속음 (dB)'); ax[2].set_title('레버 "스윽" 소리 검출 (점선 위로 0.08초 이상이면 레버로 봄)')
+    ax[2].set_ylabel(tr('지속음 (dB)')); ax[2].set_title(tr('레버 "스윽" 소리 검출 (점선 위로 0.08초 이상이면 레버로 봄)'))
     ym = np.abs(an.clean).max()
     ax[3].plot(tt, an.clean, lw=.35, color=INK2, alpha=.6)
     for k, sg in enumerate(an.segments):
@@ -315,25 +323,27 @@ def plot_diagnostics(an, path):
             axx.axvspan(a, b, color=COLORS[1], alpha=.25, lw=0)
     rj = np.concatenate([sg.fit.rejected for sg in an.segments])
     if len(rj):
-        ax[3].plot(rj, np.full(len(rj), -ym * .9), 'x', color=INK, ms=7, mew=1.5, label='잡음 클릭(제외)')
+        ax[3].plot(rj, np.full(len(rj), -ym * .9), 'x', color=INK, ms=7, mew=1.5, label=tr('잡음 클릭(제외)'))
         ax[3].legend(loc='lower right', frameon=False)
-    ax[3].set_title('소음 제거 후 파형과 사용한 틱 (위쪽 눈금)'); ax[3].set_ylabel('진폭')
-    ax[-1].set_xlabel('시간 (초)'); ax[-1].set_xlim(0, an.duration)
+    ax[3].set_title(tr('소음 제거 후 파형과 사용한 틱 (위쪽 눈금)')); ax[3].set_ylabel(tr('진폭'))
+    ax[-1].set_xlabel(tr('시간 (초)')); ax[-1].set_xlim(0, an.duration)
     amp = an.segments[0].amplitude
-    for p, lab in ((0, '틱'), (1, '톡')):
+    for p, lab in ((0, tr('틱')), (1, tr('톡'))):
         a2 = fig.add_subplot(gs[4, p])
         if amp and p < len(amp.profiles):
             tt, m, tu, tm = amp.profiles[p]
             a2.semilogy(tt * 1000, m, color=INK, lw=1.2)
-            for t_, name_, c in ((tu, '언락', COLORS[1]), (tm, '드롭', COLORS[0])):
+            for t_, name_, c in ((tu, tr('언락'), COLORS[1]), (tm, tr('드롭'), COLORS[0])):
                 a2.axvline(t_ * 1000, color=c, lw=1.5, ls=(0, (4, 2)))
                 a2.text(t_ * 1000, a2.get_ylim()[1], f' {name_}', color=INK, fontsize=10, va='top')
-            a2.set_title(f'{lab} 소리 구조 (틱 {len(an.segments[0].fit.ticks) // 2}개 중앙값) · '
-                         f'언락→드롭 {(tm - tu) * 1000:.1f} ms', fontsize=11)
-            a2.set_xlabel('드롭 기준 시각 (ms)'); a2.set_ylabel('소리 크기 (바닥=1)')
+            a2.set_title(tr('{lab} 소리 구조 (틱 {n}개 중앙값) · 언락→드롭 {ms:.1f} ms',
+                            lab=lab, n=len(an.segments[0].fit.ticks) // 2, ms=(tm - tu) * 1000), fontsize=11)
+            a2.set_xlabel(tr('드롭 기준 시각 (ms)')); a2.set_ylabel(tr('소리 크기 (바닥=1)'))
         else:
-            a2.axis('off'); a2.text(.5, .5, f'{lab}: 언락 소리를 찾지 못함', ha='center', transform=a2.transAxes)
-    fig.suptitle('진단 — 소음 제거, 틱 검출, 진폭 계산에 쓴 소리 구조', fontsize=16, fontweight='bold', x=.01, ha='left')
+            a2.axis('off'); a2.text(.5, .5, tr('{lab}: 언락 소리를 찾지 못함', lab=lab), ha='center',
+                                    transform=a2.transAxes)
+    fig.suptitle(tr('진단 — 소음 제거, 틱 검출, 진폭 계산에 쓴 소리 구조'), fontsize=16, fontweight='bold', x=.01,
+                 ha='left')
     fig.subplots_adjust(left=.07, right=.97, top=.95, bottom=.05)
     fig.savefig(path, dpi=110)
     plt.close(fig)
@@ -352,25 +362,26 @@ def plot_other_clocks(an, others, path):
             tt, m = o.profile
             a1.plot(tt, m * 1000, color=INK, lw=1.3)
         a1.axvline(0, color=COLORS[1], lw=1.2, ls=(0, (4, 2)))
-        a1.set_title(f'시계 {k} 틱 소리 ({o.band[0]}–{o.band[1]} Hz, 주 시계를 뺀 뒤 {len(f.ticks)}개 중앙값)',
-                     fontsize=11)
-        a1.set_xlabel('틱 시각 기준 (ms)'); a1.set_ylabel('소리 크기')
+        a1.set_title(tr('시계 {k} 틱 소리 ({lo}–{hi} Hz, 주 시계를 뺀 뒤 {n}개 중앙값)',
+                        k=k, lo=o.band[0], hi=o.band[1], n=len(f.ticks)), fontsize=11)
+        a1.set_xlabel(tr('틱 시각 기준 (ms)')); a1.set_ylabel(tr('소리 크기'))
         base = 3600 / o.nominal_bph if o.nominal_bph else f.beat
         x = f.ticks - f.ticks[0]
         ahead = -(x - (f.n - f.n[0]) * base) * 1000
         ahead -= np.median(ahead[:5])
-        for p, c, lab in ((0, COLORS[0], '짝수 박'), (1, COLORS[1], '홀수 박')):
+        for p, c, lab in ((0, COLORS[0], tr('짝수 박')), (1, COLORS[1], tr('홀수 박'))):
             sel = f.parity == p
             a2.plot(x[sel], ahead[sel], 'o', ms=4, color=c, mec='none', label=lab)
         xx = np.array([x[0], x[-1]])
         a2.plot(xx, np.polyval(np.polyfit(x, ahead, 1), xx), color=INK, lw=1.2, ls=(0, (5, 3)))
         a2.axhline(0, color=INK2, lw=1)
-        kind = '쿼츠로 보임' if o.quartz else f'{o.bph:.1f} bph'
-        rate = f' · {o.rate:+.1f} ± {2 * o.rate_se:.1f} 초/일' if o.rate is not None else ''
-        a2.set_title(f'시계 {k} 타임그래퍼 — {kind}{rate}', fontsize=11)
-        a2.set_xlabel('녹음 시간 (초)'); a2.set_ylabel('기준보다 앞선 시간 (ms)')
+        kind = tr('쿼츠로 보임') if o.quartz else f'{o.bph:.1f} bph'
+        rate = tr(' · {rate:+.1f} ± {ci:.1f} 초/일', rate=o.rate, ci=2 * o.rate_se) if o.rate is not None else ''
+        a2.set_title(tr('시계 {k} 타임그래퍼 — {kind}{rate}', k=k, kind=kind, rate=rate), fontsize=11)
+        a2.set_xlabel(tr('녹음 시간 (초)')); a2.set_ylabel(tr('기준보다 앞선 시간 (ms)'))
         a2.legend(frameon=False, loc='best', markerscale=2)
-    fig.suptitle('다른 시계 — 주 시계 소리를 빼고 남은 소리에서 찾은 틱', fontsize=14, fontweight='bold', x=.01, ha='left')
+    fig.suptitle(tr('다른 시계 — 주 시계 소리를 빼고 남은 소리에서 찾은 틱'), fontsize=14, fontweight='bold', x=.01,
+                 ha='left')
     fig.tight_layout()
     fig.savefig(path, dpi=110)
     plt.close(fig)

@@ -1,3 +1,5 @@
+[한국어](README.md) | [English](docs/README.en.md) | [Русский](docs/README.ru.md) | [Deutsch](docs/README.de.md) | [Français](docs/README.fr.md)
+
 # clockrate — 녹음으로 맞추는 기계식 시계
 
 휴대폰으로 녹음한 시계 소리로 **하루 몇 초 빠르고 느린지**와 **진폭**을 재고, **조속 레버를 어느 쪽으로 얼마나 옮길지** 알려 줍니다.
@@ -108,6 +110,7 @@ clock-rate 녹음2.m4a      # 3. 직전 녹음과 비교해 다음 이동량 안
 | `--여러시계` / `--multi-clock` | | 주 시계 소리를 빼고 남은 소리에서 다른 시계(배경의 쿼츠 시계 등)도 찾아 잼 ([여러 시계](#여러-시계) 참고) |
 | `--진단` / `--diagnostics` | | 진단 그래프와 소음 제거 wav도 저장 |
 | `--그래프없음` / `--no-plots` | | 요약만 만듦 |
+| `--언어` / `--lang` | `ko` (기본) | 요약·리포트 언어. `en`, `ru`, `de`, `fr` 지원 |
 
 여러 파일을 한 번에 넣으면 적은 순서대로 분석해 기록에 쌓습니다: `clock-rate recordings/시간조정*.mp3`
 
@@ -214,6 +217,7 @@ clockrate/
   advice.py     판정 등급(오차·비트 에러·진폭), 레버 방향, 다음 이동량, 측정 신뢰도
   history.py    조정 기록 (조정기록.json)
   report.py     한국어 요약, JSON
+  i18n.py       요약·그래프 문구 번역 (--언어: ko, en, ru, de, fr)
   plots.py      리포트·조정 기록·진단 그래프
   cli.py        명령줄 (clock-rate)
   sheet.py      사양 시트(INI) 읽기와 공차 비교

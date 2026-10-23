@@ -9,6 +9,7 @@ from .advice import DEFAULT_TOLERANCE, headline
 from .amplitude import DEFAULT_LIFT_ANGLE
 from .analysis import DEFAULT_BPH, AnalysisError, analyze_signal
 from .audio import AudioError, load_audio, write_wav
+from .i18n import LANGUAGES, set_lang, tr, use_lang
 from .report import other_clock_lines, other_clocks_json, segment_facts, summary_lines, to_json
 from . import sheet as specsheet
 
@@ -83,6 +84,8 @@ def build_parser():
     ap.add_argument('--여러시계', '--multi-clock', dest='multi', action='store_true',
                     help='주 시계 소리를 빼고 남은 소리에서 다른 시계(예: 배경의 쿼츠 시계)도 찾아 하루 오차를 잼')
     ap.add_argument('--그래프없음', '--no-plots', dest='plots', action='store_false', help='요약만 만들고 그래프는 생략')
+    ap.add_argument('--언어', '--lang', dest='lang', default='ko', choices=LANGUAGES,
+                    help="요약·리포트 언어: ko(기본), en, ru, de, fr. 요약.json은 항상 한국어 값을 유지")
     return ap
 
 
@@ -119,7 +122,8 @@ def run_one(path, a, log):
             if len(an.segments) > 1:
                 lines.append(f' ── {sg.name}')
             lines += specsheet.check_lines(a.spec, checks)
-            sheet_json.append(dict(segment=sg.name, **specsheet.to_json(a.spec, checks)))
+            with use_lang('ko'):    # 요약.json은 언어와 무관하게 항상 한국어 값
+                sheet_json.append(dict(segment=sg.name, **specsheet.to_json(a.spec, specsheet.compare(a.spec, sg, an))))
     others = None
     if a.multi:
         from .multiclock import find_other_clocks
@@ -154,6 +158,7 @@ def run_one(path, a, log):
 
 def main(argv=None):
     a = build_parser().parse_args(argv)
+    set_lang(a.lang)
     try:
         resolve_options(a)
     except specsheet.SheetError as e:
@@ -178,13 +183,13 @@ def main(argv=None):
             if prev:
                 from .advice import next_step
                 advice = next_step(prev['rate'], prev['ci95'] / 2, last['rate'], last['ci95'] / 2, a.tol)[1]
-            print('\n━━ 조정 기록 ━━')
+            print('\n' + tr('━━ 조정 기록 ━━'))
             for e in log:
-                amp = (f"   진폭 {e['amplitude']}°" + ('' if e.get('amplitude_reliable', True) else ' (참고용)')
+                amp = (f"   {tr('진폭')} {e['amplitude']}°" + ('' if e.get('amplitude_reliable', True) else tr(' (참고용)'))
                        if e.get('amplitude') else '')
-                print(f"  {e['file']:<16} {e['rate']:+8.1f} 초/일   {headline(e['rate'])}{amp}")
+                print(f"  {e['file']:<16} {e['rate']:+8.1f} {tr('초/일')}   {headline(e['rate'])}{amp}")
             if advice:
-                print(f'  다음 할 일: {advice}')
+                print(tr('  다음 할 일: {advice}', advice=advice))
             if a.plots:
                 from .plots import plot_history
                 plot_history(log, os.path.join(a.out, '조정기록.png'), advice, a.tol)

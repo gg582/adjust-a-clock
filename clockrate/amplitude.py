@@ -10,6 +10,8 @@ from dataclasses import dataclass, field
 import numpy as np
 import scipy.signal as s
 
+from .i18n import tr
+
 DEFAULT_LIFT_ANGLE = 52.0          # 스위스 레버의 흔한 값. Slava 5671의 공식 값은 확인하지 못함
 A_MIN, A_MAX = 140.0, 380.0
 MIN_SNR = 8.0                      # 언락 피크가 바닥 흔들림의 이 배수를 넘어야 믿는다        # 물리적으로 가능한 진폭 범위 → 언락 소리를 찾을 시간 범위를 정한다
@@ -94,8 +96,8 @@ def estimate_amplitude(raw, sr, fit, lift=DEFAULT_LIFT_ANGLE, n_boot=60, seed=0)
     spread = abs(got[0][1] - got[1][1]) if len(got) == 2 else np.inf
     lo, hi_ = float(np.percentile(allb, 2.5)), float(np.percentile(allb, 97.5))
     reliable = len(got) == 2 and min(ratios) >= MIN_SNR and spread <= 30 and hi_ - lo <= 40
-    note = '' if reliable else ('언락 소리가 약하거나 틱·톡 값이 서로 달라 참고용입니다. '
-                                '시계 뒷면에 마이크를 바짝 대고 조용한 곳에서 녹음하면 좋아집니다.')
+    note = '' if reliable else tr('언락 소리가 약하거나 틱·톡 값이 서로 달라 참고용입니다. '
+                                  '시계 뒷면에 마이크를 바짝 대고 조용한 곳에서 녹음하면 좋아집니다.')
     return Amplitude(deg=deg, lo=min(lo, deg), hi=max(hi_, deg),
                      tick_deg=per[0][1] if per[0] else None, tock_deg=per[1][1] if per[1] else None,
                      dt_ms=tuple(round(x[0] * 1000, 2) if x else None for x in per), lift=lift,
