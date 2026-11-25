@@ -72,6 +72,8 @@ def build_parser():
                          'bph·리프트각은 옵션으로 직접 주지 않으면 시트 값을 씀')
     ap.add_argument('--허용', '--tolerance', dest='tol', type=float, default=DEFAULT_TOLERANCE,
                     help=f'이 안(초/일)이면 조정 완료로 판정 (기본 {DEFAULT_TOLERANCE:.0f})')
+    ap.add_argument('--탁상시계', '--tableclock', dest='table_clock', action='store_true',
+                    help='비트 에러를 탁상시계 기준(10 ms까지 양호, 20 ms 초과만 조정 권장)으로 판정')
     ap.add_argument('--이름', '--names', dest='names', default='', help='구간 이름, 쉼표로 구분 (예: 가운데,빠르게,느리게)')
     ap.add_argument('--창', '--window', dest='window', type=float,
                     help='시간대별 안정성 창 길이(초). 생략하면 자동(10 또는 20초), 0이면 끔')
@@ -111,19 +113,19 @@ def run_one(path, a, log):
 
     single = len(an.segments) == 1 and an.reference == 'nominal'
     prev = history.previous(log, stem, an.nominal_bph) if (a.history and single) else None
-    lines = summary_lines(name, an, prev, a.tol)
+    lines = summary_lines(name, an, prev, a.tol, a.table_clock)
     sheet_json = None
     if a.spec:
         sheet_json = []
         for sg in an.segments:
             if sg.is_reference:
                 continue
-            checks = specsheet.compare(a.spec, sg, an)
+            checks = specsheet.compare(a.spec, sg, an, a.table_clock)
             if len(an.segments) > 1:
                 lines.append(f' ── {sg.name}')
             lines += specsheet.check_lines(a.spec, checks)
             with use_lang('ko'):    # 요약.json은 언어와 무관하게 항상 한국어 값
-                sheet_json.append(dict(segment=sg.name, **specsheet.to_json(a.spec, specsheet.compare(a.spec, sg, an))))
+                sheet_json.append(dict(segment=sg.name, **specsheet.to_json(a.spec, specsheet.compare(a.spec, sg, an, a.table_clock))))
     others = None
     if a.multi:
         from .multiclock import find_other_clocks
@@ -133,7 +135,7 @@ def run_one(path, a, log):
     with open(os.path.join(out, '요약.txt'), 'w') as f:
         f.write('\n'.join(lines) + '\n')
     with open(os.path.join(out, '요약.json'), 'w') as f:
-        data = to_json(path, an, prev, a.tol)
+        data = to_json(path, an, prev, a.tol, a.table_clock)
         if sheet_json is not None:
             data['sheet_check'] = sheet_json
         if others is not None:
@@ -142,7 +144,7 @@ def run_one(path, a, log):
     if a.plots:
         from .plots import plot_diagnostics, plot_other_clocks, plot_report
         rel = an.segments[0].name if an.reference == 'first' else None
-        facts = [(sg, segment_facts(sg, prev if single else None, a.tol, rel)) for sg in an.segments]
+        facts = [(sg, segment_facts(sg, prev if single else None, a.tol, rel, a.table_clock)) for sg in an.segments]
         plot_report(an, name, os.path.join(out, '리포트.png'), facts, a.tol)
         if a.diag:
             plot_diagnostics(an, os.path.join(out, '진단.png'))

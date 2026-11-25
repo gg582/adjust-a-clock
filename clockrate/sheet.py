@@ -2,6 +2,7 @@
 import configparser
 from dataclasses import dataclass, field
 
+from .advice import TABLE_CLOCK_BEAT_ERROR_MS
 from .i18n import tr
 
 DEFAULT_BEAT_ERROR_MAX_MS = 5.0
@@ -108,7 +109,7 @@ def _judge(value, spread, r):
     return BORDER
 
 
-def compare(sheet, sg, an):
+def compare(sheet, sg, an, table_clock=False):
     """구간 하나의 측정값을 시트 공차와 비교한다. 반환: [Check, ...]
 
     문자열은 현재 보고서 언어로 만든다 — JSON용으로는 use_lang('ko') 아래에서 다시 호출한다."""
@@ -158,7 +159,8 @@ def compare(sheet, sg, an):
             checks.append(Check(tr('진폭'), tr('약 {deg:.0f}°', deg=amp.deg), _limit_text(t['amplitude_deg'], '°'), st, note,
                                 'amplitude_deg'))
 
-    be_max = t.get('beat_error_ms_max', (None, DEFAULT_BEAT_ERROR_MAX_MS))
+    be_max = t.get('beat_error_ms_max',
+                   (None, TABLE_CLOCK_BEAT_ERROR_MS[1] if table_clock else DEFAULT_BEAT_ERROR_MAX_MS))
     be = sg.fit.beat_err * 1000
     checks.append(Check(tr('비트 에러'), f'{be:.1f} ms', _limit_text(be_max, ' ms'), PASS if be <= be_max[1] else FAIL,
                         '' if 'beat_error_ms_max' in t else tr('사양에 수치 없음 — 도구 기준값'), 'beat_error_ms_max'))

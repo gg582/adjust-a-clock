@@ -8,8 +8,9 @@ import pytest
 import scipy.io.wavfile as wavfile
 
 from clockrate import AnalysisError, analyze_signal
-from clockrate.advice import fmt_duration, grade_rate, lever_direction, next_step
+from clockrate.advice import fmt_duration, grade_beat_error, grade_rate, lever_direction, next_step
 from clockrate.amplitude import amplitude_of
+from clockrate.audio import denoise
 from clockrate.analysis import guess_nominal_bph
 from clockrate.cli import main, parse_bph
 from clockrate.multiclock import find_other_clocks
@@ -304,3 +305,40 @@ def test_cli_multi_clock_only_when_asked(tmp_path, capsys):
     assert oc['quartz'] and abs(oc['rate_s_per_day']) < 1.5
     assert abs(oc['main_minus_this']['rate_s_per_day'] + 40) < 2
     assert (out / 'rec' / '다른시계.png').exists()
+
+
+def test_denoise_keeps_ticks_locked_to_noise_sampling():
+    """박자가 잡음 바닥 추적 간격(약 0.5초)과 맞물려도 틱을 잡음으로 보고 깎지 않아야 한다."""
+    beat = 188 * 128 / SR / 2                       # 추적 간격 안에 정확히 두 박
+    x = np.random.default_rng(0).normal(0, 0.001, 20 * SR)
+    k = np.arange(1200)
+    click = np.exp(-k / 400) * np.sin(2 * np.pi * 7000 * k / SR) * 0.05
+    starts = [int(i * beat * SR) for i in range(1, int(19 / beat))]
+    for j in starts:
+        x[j - 200:j + 1000] += click
+    y = denoise(x, SR)
+    keep = [np.sqrt(np.mean(y[j - 200:j + 300] ** 2) / np.mean(x[j - 200:j + 300] ** 2)) for j in starts[4:-4]]
+    assert min(keep) > 0.9
+
+
+def test_table_clock_beat_error_grades():
+    """탁상시계 기준은 옵션을 줬을 때만 적용한다."""
+    ms = (3, 5, 10, 10.1, 20, 20.1)
+    assert [grade_beat_error(v).key for v in ms] == ['good', 'warning'] + ['serious'] * 4
+    assert [grade_beat_error(v, True).key for v in ms] == ['good'] * 3 + ['warning'] * 2 + ['serious']
+
+
+@pytest.mark.skipif(not shutil.which('ffmpeg'), reason='ffmpeg 필요')
+@pytest.mark.parametrize('flag, key, sheet_status', [(None, 'serious', FAIL), ('--탁상시계', 'warning', PASS),
+                                                     ('--tableclock', 'warning', PASS)])
+def test_table_clock_option(tmp_path, flag, key, sheet_status):
+    p = tmp_path / 'rec.wav'
+    x = synth([(0.3, 29.5, 5)], 30, beat_error=0.0114)
+    wavfile.write(p, SR, (x / np.abs(x).max() * 0.9 * 32767).astype(np.int16))
+    out = tmp_path / 'out'
+    args = [str(p), '--시트', SHEET, '--그래프없음', '--기록끔', '--출력', str(out)] + ([flag] if flag else [])
+    assert main(args) == 0
+    data = json.loads((out / 'rec' / '요약.json').read_text())
+    assert data['segments'][0]['beat_error_grade']['key'] == key
+    sheet = next(c for c in data['sheet_check'][0]['checks'] if c['item'] == '비트 에러')
+    assert sheet['status'] == sheet_status

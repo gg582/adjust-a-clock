@@ -106,6 +106,7 @@ The terminal and `results/<파일명>/요약.txt` show a summary like this.
 | `--names` | `center,faster,...` | Segment names |
 | `--window` | seconds | Window length for rate-over-time. Defaults to 10 s (segments under 90 s) or 20 s; `0` disables |
 | `--out` | folder | Output folder (default `./results`). The regulation history is also kept here |
+| `--tableclock` | | Grade beat error for a table clock: up to 10 ms good, up to 20 ms noted only, adjustment advised above that (tool default, not an official spec) |
 | `--no-history` | | Do not record to the history and do not compare with the previous recording |
 | `--multi-clock` | | After removing the main clock's sound, also find other clocks (e.g., a quartz clock in the background) and measure them (see [Multiple clocks](#multiple-clocks)) |
 | `--diagnostics` | | Also save diagnostic graphs and a denoised wav |

@@ -6,6 +6,8 @@ import numpy as np
 from .i18n import tr
 
 DEFAULT_TOLERANCE = 10.0    # 이 안(초/일)이면 조정 완료로 본다
+BEAT_ERROR_MS = (3.0, 5.0)               # 비트 에러 양호 / 조정 권장 경계 (손목시계에서 흔히 쓰는 기준)
+TABLE_CLOCK_BEAT_ERROR_MS = (10.0, 20.0)  # 한 자세로 두는 탁상시계용 (공식 규격이 아닌 도구 기준)
 
 
 @dataclass
@@ -52,11 +54,12 @@ def lever_direction(rate, tol=DEFAULT_TOLERANCE):
     return tr('조속 레버를 느림(-, S) 쪽으로 옮기세요.') if rate > 0 else tr('조속 레버를 빠름(+, F) 쪽으로 옮기세요.')
 
 
-def grade_beat_error(ms):
-    if ms <= 3:
+def grade_beat_error(ms, table_clock=False):
+    good, limit = TABLE_CLOCK_BEAT_ERROR_MS if table_clock else BEAT_ERROR_MS
+    if ms <= good:
         return Grade('good', '◎', tr('양호'))
-    if ms <= 5:
-        return Grade('warning', '△', tr('보통'))
+    if ms <= limit:
+        return Grade('warning', '△', tr('참고 — 잘 가면 그대로 두세요') if table_clock else tr('보통'))
     return Grade('serious', '▲', tr('큼 — 비트 조정(밸런스 정지 위치 맞춤) 권장'))
 
 

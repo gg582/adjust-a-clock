@@ -23,7 +23,18 @@ def estimate_beat(env, sr):
         mode = edges[np.argmax(hist)] + 0.002
         near = d[np.abs(d / mode - 1) < 0.1]
         if len(near) >= 0.3 * len(d):
-            return float(np.median(near))
+            mode_beat = float(np.median(near))
+            # 비트 에러가 한 박의 수 %를 넘으면 틱-톡 간격이 짧은 쪽/긴 쪽 두 봉우리로 갈라져
+            # 최빈값이 한 박이 아니라 한쪽 간격을 가리킨다. 최빈값의 1.2~1.75배(또는 0.55~0.85배)에
+            # 짝 봉우리가 비슷한 빈도로 있으면(놓친 박의 정수배 간격과는 다름) 두 봉우리의
+            # 평균이 진짜 한 박이다.
+            lo = d[(d > 0.55 * mode_beat) & (d < 0.85 * mode_beat)]
+            hi = d[(d > 1.2 * mode_beat) & (d < 1.75 * mode_beat)]
+            if len(hi) >= max(10, 0.5 * len(near)):
+                return float((mode_beat + np.median(hi)) / 2)
+            if len(lo) >= max(10, 0.5 * len(near)):
+                return float((np.median(lo) + mode_beat) / 2)
+            return mode_beat
     return _beat_autocorr(env, sr)
 
 

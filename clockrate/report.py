@@ -14,7 +14,7 @@ def _signed(sec):
     return ('+' if sec > 0 else '-') + fmt_duration(sec)
 
 
-def segment_facts(sg, prev=None, tol=DEFAULT_TOLERANCE, relative_to=None):
+def segment_facts(sg, prev=None, tol=DEFAULT_TOLERANCE, relative_to=None, table_clock=False):
     """구간 하나에 대한 판단 결과 묶음 (텍스트·그래프·JSON이 같이 쓴다)."""
     f = sg.fit
     span = f.ticks[-1] - f.ticks[0]
@@ -24,7 +24,7 @@ def segment_facts(sg, prev=None, tol=DEFAULT_TOLERANCE, relative_to=None):
                                                                   headline=headline(sg.rate)),
         lever=lever_direction(sg.rate, tol),
         drift={'1일': sg.rate, '1주': sg.rate * 7, '30일': sg.rate * 30},
-        beat=grade_beat_error(f.beat_err * 1000), amp=grade_amplitude(sg.amplitude), stability=stability(sg.windows),
+        beat=grade_beat_error(f.beat_err * 1000, table_clock), amp=grade_amplitude(sg.amplitude), stability=stability(sg.windows),
         quality=quality(f, span), step=None)
     if prev is not None:
         delta, msg = next_step(prev['rate'], prev['ci95'] / 2, sg.rate, sg.rate_se, tol)
@@ -100,7 +100,7 @@ def _relative_block(sg, first):
             + tr(' · 틱 {used}/{expected}개', used=len(f.ticks), expected=f.expected)]
 
 
-def summary_lines(name, an, prev=None, tol=DEFAULT_TOLERANCE):
+def summary_lines(name, an, prev=None, tol=DEFAULT_TOLERANCE, table_clock=False):
     ref = tr('{bph:.0f} bph 기준', bph=an.nominal_bph) if an.reference == 'nominal' else tr('구간 1 기준')
     lines = [RULE, tr(' {name}   (녹음 {dur:.0f}초 · {ref})', name=name, dur=an.duration, ref=ref), RULE]
     if an.bph_mismatch:
@@ -112,7 +112,7 @@ def summary_lines(name, an, prev=None, tol=DEFAULT_TOLERANCE):
                      pct=abs(an.measured_bph / an.nominal_bph - 1) * 100, hint=hint), '']
     segs = an.segments
     if len(segs) == 1:
-        return lines + _segment_block(segs[0], segment_facts(segs[0], prev, tol))
+        return lines + _segment_block(segs[0], segment_facts(segs[0], prev, tol, table_clock=table_clock))
 
     if an.split_mode not in SPLIT_NONE:
         lines.append(tr(' 레버 소리 {n}개: ', n=len(an.cuts)) + ', '.join(tr('{v:.1f}초', v=a) for a, _ in an.cuts))
@@ -123,7 +123,7 @@ def summary_lines(name, an, prev=None, tol=DEFAULT_TOLERANCE):
         elif an.reference == 'first':
             lines += _relative_block(sg, segs[0])
         else:
-            lines += _segment_block(sg, segment_facts(sg, None, tol))
+            lines += _segment_block(sg, segment_facts(sg, None, tol, table_clock=table_clock))
     if an.reference == 'first' and any(2 * sg.rate_se > 5 for sg in segs[1:]):
         lines += ['', tr(' ※ 구간이 짧아 작은 차이는 가려낼 수 없습니다. 레버 위치마다 1분 이상 녹음하세요.')]
     lines += ['', tr(' ▶ 레버 효과 (앞 구간 대비)')]
@@ -136,12 +136,12 @@ def _grade_json(g):
     return dict(key=g.key, label=g.label)
 
 
-def to_json(path, an, prev=None, tol=DEFAULT_TOLERANCE):
+def to_json(path, an, prev=None, tol=DEFAULT_TOLERANCE, table_clock=False):
     """기계용 데이터 — 언어 설정과 무관하게 항상 한국어 값을 유지한다."""
     with use_lang('ko'):
         segs = []
         for sg in an.segments:
-            fx = segment_facts(sg, prev if len(an.segments) == 1 else None, tol)
+            fx = segment_facts(sg, prev if len(an.segments) == 1 else None, tol, table_clock=table_clock)
             level, det, reasons, tips = fx['quality']
             st = fx['stability']
             segs.append(dict(

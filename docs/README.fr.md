@@ -106,6 +106,7 @@ Le terminal ainsi que `results/<파일명>/요약.txt` affichent un résumé de 
 | `--names` | `가운데,빠르게,...` | noms des segments |
 | `--window` | secondes | longueur de la fenêtre d'erreur par plage horaire. Par défaut 10 s (segments de moins de 90 s) ou 20 s ; `0` désactive |
 | `--out` | dossier | dossier des résultats (défaut `./results`). L'historique de réglage s'y accumule aussi |
+| `--tableclock` | | évaluer l’erreur de battement pour une horloge de table : bon jusqu’à 10 ms, simple remarque jusqu’à 20 ms, réglage conseillé au-delà (critère de l’outil, pas une norme officielle) |
 | `--no-history` | | ne pas inscrire dans l'historique de réglage ni comparer à l'enregistrement précédent |
 | `--multi-clock` | | en soustrayant le son de la montre principale, cherche et mesure aussi d'autres montres dans le son restant (montre à quartz en arrière-plan, etc.) — voir [Plusieurs montres](#plusieurs-montres) |
 | `--diagnostics` | | enregistre aussi les graphiques de diagnostic et le wav débruité |

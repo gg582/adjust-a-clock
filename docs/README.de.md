@@ -106,6 +106,7 @@ Im Terminal und in `results/<파일명>/요약.txt` erscheint eine solche Zusamm
 | `--names` | `가운데,빠르게,...` | Namen der Abschnitte |
 | `--window` | Sekunden | Fensterlänge des Fehlerverlaufs. Ohne Angabe 10 s (Abschnitt unter 90 s) bzw. 20 s, `0` = aus |
 | `--out` | Ordner | Ergebnisordner (Standard `./results`). Auch das Regulierungsprotokoll wird hier abgelegt |
+| `--tableclock` | | Schlagfehler für Tischuhren bewerten: bis 10 ms gut, bis 20 ms nur Hinweis, darüber Korrektur empfohlen (Richtwert des Tools, keine offizielle Norm) |
 | `--no-history` | | nicht im Regulierungsprotokoll speichern und nicht mit der vorherigen Aufnahme vergleichen |
 | `--multi-clock` | | sucht im Restklang nach Abzug der Hauptuhr auch andere Uhren (z. B. eine Quarzuhr im Hintergrund) und misst sie (siehe [Mehrere Uhren](#mehrere-uhren)) |
 | `--diagnostics` | | zusätzlich Diagnosediagramme und eine rauschbereinigte WAV-Datei speichern |

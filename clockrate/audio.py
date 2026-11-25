@@ -5,7 +5,6 @@ import tempfile
 
 import numpy as np
 import scipy.io.wavfile as wavfile
-import scipy.ndimage as ndimage
 import scipy.signal as s
 
 SAMPLE_RATE = 48000
@@ -41,10 +40,10 @@ def denoise(x, sr):
     _, _, Z = s.stft(xb, sr, nperseg=nper, noverlap=nov)
     P = np.abs(Z)
     hop = nper - nov
-    step = max(1, round(sr / hop / 2))  # 잡음 바닥은 0.5초 간격으로만 추적 (전체 해상도로 하면 느림)
-    cols = np.arange(0, P.shape[1], step)
-    win = max(3, round(sr / hop / step))  # 약 1초 창
-    low = ndimage.median_filter(P[:, cols], size=(1, win), mode='nearest')
+    half = max(1, round(sr / hop / 2))      # 앞뒤 0.5초 = 약 1초 창
+    cols = np.arange(0, P.shape[1], half)   # 잡음 바닥은 0.5초 간격으로 추적하되, 창 안의 프레임은 모두 쓴다
+    # (프레임을 0.5초마다 하나씩만 뽑으면 틱 박자와 맞물려 틱 소리를 잡음으로 착각한다)
+    low = np.stack([np.median(P[:, max(0, c - half):c + half + 1], axis=1) for c in cols], 1)
     local = np.apply_along_axis(lambda r: np.interp(np.arange(P.shape[1]), cols, r), 1, low)
     noise = np.maximum(np.percentile(P, 30, axis=1, keepdims=True), local)
     gain = s.medfilt2d(np.clip(1 - (2.0 * noise / (P + 1e-12)) ** 2, 0, 1), (3, 1))
