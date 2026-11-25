@@ -126,7 +126,7 @@ Because the balance turns through the lift angle between these two sounds, the a
 amplitude = lift_angle / (2·sin(π · unlock→drop time / one period))
 ```
 
-- **Averaged curve:** the loudness curves of the whole recording are overlaid per tick/tock and reduced to a median; the sharpest peak before the drop, within the physically possible range (the time corresponding to amplitudes of 140–380°), is taken as the unlock.
+- **Averaged curve:** the loudness curves of the whole recording are overlaid per tick/tock and reduced to a median; the first clear peak before the drop, within the physically possible range (the time corresponding to amplitudes of 90–380°), is taken as the unlock (an impulse sound may follow it). Below 140° the value is marked as reference only.
 - **Confidence:** a 95% range is computed by bootstrap resampling of the ticks. If the tick and tock values differ by more than 30°, or the range is wider than 40°, the value is marked "for reference".
 - **Lift angle:** a property of the movement. No official value for the Slava 5671 could be found, so the common Swiss lever value of 52° is the default. Absolute values are uncertain by exactly this assumption.
 - **Comparing the same clock:** amplitude is nearly proportional to the lift angle, so comparing recordings of the same clock (whether the amplitude has dropped) is accurate regardless of the lift angle. You can see this trend in the history graph.

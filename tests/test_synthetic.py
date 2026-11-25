@@ -342,3 +342,38 @@ def test_table_clock_option(tmp_path, flag, key, sheet_status):
     assert data['segments'][0]['beat_error_grade']['key'] == key
     sheet = next(c for c in data['sheet_check'][0]['checks'] if c['item'] == '비트 에러')
     assert sheet['status'] == sheet_status
+
+
+def test_large_beat_error_is_tracked():
+    """틱·톡 간격 차이가 커도(80 ms) 정상 틱을 버리거나 비트 에러를 작게 재지 않아야 한다."""
+    sg = analyze_signal(synth([(0.3, 39.5, 30)], 40, beat_error=0.04), SR).segments[0]
+    assert sg.fit.beat_err == pytest.approx(0.04, abs=5e-4)
+    assert sg.rate == pytest.approx(30, abs=1) and sg.fit.missing == 0
+
+
+def test_small_phase_step_keeps_ticks():
+    """중간에 박자가 12 ms 밀려도 앞뒤 틱을 모두 쓴다."""
+    sg = analyze_signal(synth([(0.3, 20.2, 0), (20.312, 39.5, 0)], 40), SR).segments[0]
+    assert sg.fit.missing <= 1 and len(sg.fit.rejected) <= 2
+
+
+def test_large_phase_jump_uses_one_stretch():
+    """박자가 크게 밀리면 이어지는 구간만 쓰고, 밀리기 전을 엉뚱한 소리로 채우지 않는다."""
+    sg = analyze_signal(synth([(0.3, 12.3, 20), (12.39, 49.5, 20)], 50, unlock=0.016), SR).segments[0]
+    assert sg.fit.ticks[0] > 11 and sg.fit.missing == 0
+    assert sg.rate == pytest.approx(20, abs=2)
+    assert sg.fit.beat_err == pytest.approx(0.003, abs=3e-4)
+
+
+def test_amplitude_picks_first_sound_for_both():
+    """언락과 임펄스 중 어느 쪽이 큰지가 틱·톡에서 달라도 둘 다 언락을 고른다."""
+    sg = analyze_signal(synth([(0.3, 59.5, 0)], 60, unlock=0.018), SR).segments[0]
+    want = amplitude_of(0.018, 0.4, 52)
+    x = synth([(0.3, 59.5, 0)], 60, unlock=0.018)
+    k = np.arange(300)
+    click = np.exp(-k / 40) * np.sin(2 * np.pi * 7000 * k / SR) * 0.08
+    for t in sg.fit.ticks[sg.fit.parity == 1]:           # 톡에만 더 큰 임펄스 소리
+        j = int((t - 0.009) * SR)
+        x[j:j + 300] += 0.45 * click
+    a = analyze_signal(x, SR).segments[0].amplitude
+    assert (a.tick_deg, a.tock_deg) == pytest.approx((want, want), abs=12)

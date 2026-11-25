@@ -126,7 +126,7 @@ Comme le temps entre ces deux bruits correspond à la rotation du balancier sur 
 진폭 = 리프트각 / (2·sin(π · 언락→드롭 시간 / 한 주기))
 ```
 
-- **Courbe moyenne :** pour chaque tic et tac, on superpose les courbes d'amplitude sonore de tout l'enregistrement et l'on en prend la médiane ; le pic le plus net avant la chute, dans la plage physiquement possible (durée correspondant à une amplitude de 140–380°), est retenu comme unlock.
+- **Courbe moyenne :** pour chaque tic et tac, on superpose les courbes d'amplitude sonore de tout l'enregistrement et l'on en prend la médiane ; le premier pic net avant la chute, dans la plage physiquement possible (durée correspondant à une amplitude de 90–380°), est retenu comme unlock (un bruit d’impulsion peut suivre). En dessous de 140°, la valeur est indicative.
 - **Fiabilité :** une plage à 95 % est obtenue par bootstrap (rééchantillonnage aléatoire des tics). Si les valeurs tic/tac diffèrent de plus de 30° ou si la plage dépasse 40°, le résultat est marqué « à titre indicatif ».
 - **Angle de levée :** valeur propre à chaque mouvement. La valeur officielle du Slava 5671 n'ayant pas été trouvée, la valeur par défaut est 52°, courante pour les ancres suisses. La valeur absolue est incertaine à hauteur de cette hypothèse.
 - **Comparaison d'une même montre :** l'amplitude étant quasi proportionnelle à l'angle de levée, comparer des enregistrements d'une même montre (l'amplitude a-t-elle diminué ?) est exact indépendamment de l'angle de levée. Cette tendance est visible dans le graphique d'historique de réglage.

@@ -13,8 +13,10 @@ import scipy.signal as s
 from .i18n import tr
 
 DEFAULT_LIFT_ANGLE = 52.0          # 스위스 레버의 흔한 값. Slava 5671의 공식 값은 확인하지 못함
-A_MIN, A_MAX = 140.0, 380.0
-MIN_SNR = 8.0                      # 언락 피크가 바닥 흔들림의 이 배수를 넘어야 믿는다        # 물리적으로 가능한 진폭 범위 → 언락 소리를 찾을 시간 범위를 정한다
+A_MIN, A_MAX = 90.0, 380.0         # 언락 소리를 찾을 시간 범위를 정하는 진폭 범위
+A_PLAUSIBLE = 140.0                # 이보다 작으면 레버 탈진기가 정상으로 가기 어려워 참고용으로만 본다
+MIN_PROMINENCE = 0.15              # 가장 뚜렷한 봉우리의 이 비율은 되어야 언락 후보로 본다
+MIN_SNR = 8.0                      # 언락 피크가 바닥 흔들림의 이 배수를 넘어야 믿는다
 
 
 @dataclass
@@ -43,7 +45,7 @@ def _dt_range(period, lift):
 def _unlock_to_drop(env, sr, ticks, dt_lo, dt_hi, pick=None):
     """틱들을 겹쳐 만든 중앙값 소리 크기 곡선에서 드롭 피크와 그 앞 언락 피크 사이 시간.
     반환: (Δt 초, 언락 피크의 신호 대 잡음비, 진단용 곡선) 또는 None"""
-    pre, post = int((dt_hi + .004) * sr), int(.006 * sr)
+    pre, post = int((dt_hi + .012) * sr), int(.006 * sr)
     idx = np.array([int(round(t * sr)) for t in ticks])
     idx = idx[(idx - pre > 0) & (idx + post < len(env))]
     if pick is not None:
@@ -58,13 +60,18 @@ def _unlock_to_drop(env, sr, ticks, dt_lo, dt_hi, pick=None):
     lo = max(int(np.searchsorted(tt, tt[peak] - .004)), 0)
     main = lo + int(np.argmax(m[lo:peak + 1] >= 0.5 * m[peak]))
     win = (tt > tt[main] - dt_hi) & (tt < tt[main] - dt_lo)
-    pk, pr = s.find_peaks(np.where(win, m, 0), prominence=0)
-    if not len(pk):
-        return None
-    k = pk[np.argmax(pr['prominences'])]
-    floor = m[: max(pre // 4, 8)]                                  # 언락보다 훨씬 앞의 조용한 바닥
+    floor = m[: max(int(.008 * sr), 8)]                            # 언락보다 훨씬 앞의 조용한 바닥
     base = np.median(floor) + 1e-15
     noise = 1.4826 * np.median(np.abs(floor - base)) + 1e-15
+    # 드롭 앞에는 언락과 임펄스 두 소리가 있다. 어느 쪽이 더 큰지는 틱·톡마다 다르므로,
+    # 가장 큰 봉우리가 아니라 뚜렷한 봉우리 중 맨 앞의 것을 언락으로 본다.
+    smooth = s.sosfiltfilt(s.butter(2, 600, fs=sr, output='sos'), m)
+    pk, pr = s.find_peaks(np.where(win, smooth, 0), prominence=0)
+    if not len(pk):
+        return None
+    prom = pr['prominences']
+    clear = pk[(prom >= MIN_PROMINENCE * prom.max()) & ((m[pk] - base) / noise >= MIN_SNR)]
+    k = clear[0] if len(clear) else pk[np.argmax(prom)]
     return tt[main] - tt[k], float((m[k] - base) / noise), (tt, m / base, tt[k], tt[main])
 
 
@@ -95,7 +102,7 @@ def estimate_amplitude(raw, sr, fit, lift=DEFAULT_LIFT_ANGLE, n_boot=60, seed=0)
     allb = np.concatenate(boots) if boots else np.array([deg])
     spread = abs(got[0][1] - got[1][1]) if len(got) == 2 else np.inf
     lo, hi_ = float(np.percentile(allb, 2.5)), float(np.percentile(allb, 97.5))
-    reliable = len(got) == 2 and min(ratios) >= MIN_SNR and spread <= 30 and hi_ - lo <= 40
+    reliable = len(got) == 2 and min(ratios) >= MIN_SNR and spread <= 30 and hi_ - lo <= 40 and deg >= A_PLAUSIBLE
     note = '' if reliable else tr('언락 소리가 약하거나 틱·톡 값이 서로 달라 참고용입니다. '
                                   '시계 뒷면에 마이크를 바짝 대고 조용한 곳에서 녹음하면 좋아집니다.')
     return Amplitude(deg=deg, lo=min(lo, deg), hi=max(hi_, deg),

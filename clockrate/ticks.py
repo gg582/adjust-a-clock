@@ -2,6 +2,7 @@
 from dataclasses import dataclass, field
 
 import numpy as np
+import scipy.ndimage as ndimage
 import scipy.signal as s
 
 
@@ -99,16 +100,39 @@ def _lstsq_beat(t, n, par):
     return coef, r, cov
 
 
+LOST_TICKS = 16      # 이만큼의 온셋을 보고 박자를 놓쳤는지 판단한다
+CLICK_DEV = 0.04     # 추세에서 한 박의 이만큼도 벗어나지 않으면 잡음 클릭으로 보지 않는다
+LOCAL_TICKS = 11     # 주변 추세를 구하는 틱(또는 톡) 수
+
+
+def _local_trend(n, r, at):
+    """at번째 박들에서의 주변 추세. 잔차의 느린 흔들림·계단(시계를 건드려 박자가 밀린 경우)을 따라간다.
+    비트 에러도 녹음 중에 변할 수 있으므로 틱과 톡을 따로 본다."""
+    out = np.zeros(len(at))
+    for p in (0, 1):
+        k, q = n % 2 == p, at % 2 == p
+        if k.sum() >= 3:
+            med = ndimage.median_filter(r[k], size=min(LOCAL_TICKS, (k.sum() - 1) // 2 * 2 + 1), mode='mirror')
+            out[q] = np.interp(at[q], n[k], med)
+    return out
+
+
 def _robust_fit(tk, n, rejected, filled=0):
-    """잔차가 큰 점(잡음 클릭)을 반복 제외하며 박자 모델을 푼다."""
+    """주변 틱들의 추세에서 벗어난 점(잡음 클릭)을 반복 제외하며 박자 모델을 푼다.
+    전체 직선에서 벗어났는지로 고르면, 속도가 변하거나 박자가 밀린 구간의 진짜 틱을 통째로 버린다."""
     par = (n % 2).astype(float)
     A = np.c_[np.ones(len(tk)), n, par]
     keep = np.ones(len(tk), bool)
     for _ in range(8):
         coef, *_ = np.linalg.lstsq(A[keep], tk[keep], rcond=None)
         r = tk - A @ coef
-        mad = np.median(np.abs(r[keep])) * 1.4826
-        nk = np.abs(r) < max(0.003, 4 * mad)
+        r = r - _local_trend(n, r, n)     # 제외한 점까지 포함해야 한 구간이 연쇄로 버려지지 않는다
+        mad_all = np.median(np.abs(r[keep])) * 1.4826
+        nk = np.zeros(len(tk), bool)
+        for p in (0, 1):                # 한쪽(틱 또는 톡)만 흔들리는 시계가 있어 따로 판단한다
+            k = n % 2 == p
+            mad = np.median(np.abs(r[k & keep])) * 1.4826 if (k & keep).any() else 0.0
+            nk |= k & (np.abs(r) < max(0.003, CLICK_DEV * coef[1], 4 * mad, 4 * mad_all))
         if (nk == keep).all():
             break
         keep = nk
@@ -131,21 +155,63 @@ def fit_beats(tk, beat):
     if len(tk) < 6:
         return None
     d = np.diff(tk)
-    reg = [np.abs(d[i:i + 4] / beat - 1).max() for i in range(len(d) - 3)]
+    near = (d > 0.55 * beat) & (d < 1.45 * beat)
+    two = (d[:-1] + d[1:])[near[:-1] & near[1:]]       # 두 박의 합은 비트 에러와 무관하다
+    two = two[np.abs(two / (2 * beat) - 1) < 0.15]
+    if len(two) >= 5:
+        beat = float(np.median(two)) / 2
+    reg = [max(abs(d[i] + d[i + 1] - 2 * beat), abs(d[i + 1] + d[i + 2] - 2 * beat),
+               abs(d[i + 2] - d[i]), abs(d[i + 3] - d[i + 1])) for i in range(len(d) - 3)]
     st = int(np.argmin(reg)) if reg else 0
-    idx, nums = [st], [0]
+    c = float(np.clip((d[st] - d[st + 1]) / 2, -0.35 * beat, 0.35 * beat)) if reg else 0.0   # 홀수 박의 치우침
+
+    def step(dt, odd, sign):
+        """간격 dt에 맞는 박 수. odd: 기준 틱이 홀수 박인가, sign: +1 뒤로, -1 앞으로 따라감."""
+        best = None
+        for m in {int(dt // beat), int(dt // beat) + 1, int(dt // beat) + 2} - {0}:
+            shift = (c if not odd else -c) * sign if m % 2 else 0.0
+            e = abs(dt - m * beat - shift)
+            if best is None or e < best[1]:
+                best = (m, e)
+        return best[0] if best[1] <= 0.2 * beat else 0
+
+    def lost(seen):
+        """최근 본 온셋 대부분이 모델과 안 맞는데 자기들끼리는 규칙적이면 박자가 크게 밀린 것이다.
+        그 시작 번호를 돌려준다 (안 밀렸으면 None)."""
+        miss = [j for j, ok in seen[-LOST_TICKS:] if not ok]
+        if len(seen) < LOST_TICKS or len(miss) < 0.7 * LOST_TICKS:
+            return None
+        v = np.sort(tk[miss])
+        regular = np.abs((v[1:] - v[:-1]) / beat - 1) < 0.45
+        return miss[0] if regular.mean() > 0.7 else None
+
+    # 박자가 크게 밀리면 몇 박이 지났는지 알 수 없으므로 거기서 멈추고, 이어지는 구간만 쓴다
+    idx, nums, seen = [st], [0], []
     for j in range(st + 1, len(tk)):
-        m = round((tk[j] - tk[idx[-1]]) / beat)
-        if m < 1 or abs(tk[j] - tk[idx[-1]] - m * beat) > 0.2 * beat:
+        m = step(tk[j] - tk[idx[-1]], nums[-1] % 2, 1)
+        seen.append((j, bool(m)))
+        if not m:
+            cut = lost(seen)
+            if cut is not None:
+                while idx[-1] > cut:
+                    idx.pop(); nums.pop()
+                break
             continue
         idx.append(j); nums.append(nums[-1] + m)
         back = next((i for i in range(max(0, len(idx) - 21), len(idx) - 1)
                      if (nums[-1] - nums[i]) % 2 == 0), None)   # 짝수 박 간격이라 비트 에러 상쇄
         if back is not None and nums[-1] - nums[back] >= 2:
             beat = (tk[idx[-1]] - tk[idx[back]]) / (nums[-1] - nums[back])
+    seen = []
     for j in range(st - 1, -1, -1):
-        m = round((tk[idx[0]] - tk[j]) / beat)
-        if m < 1 or abs(tk[idx[0]] - tk[j] - m * beat) > 0.2 * beat:
+        m = step(tk[idx[0]] - tk[j], nums[0] % 2, -1)
+        seen.append((j, bool(m)))
+        if not m:
+            cut = lost(seen)
+            if cut is not None:
+                while idx[0] < cut:
+                    idx.pop(0); nums.pop(0)
+                break
             continue
         idx.insert(0, j); nums.insert(0, nums[0] - m)
     return _robust_fit(tk[idx], np.array(nums), np.setdiff1d(tk, tk[idx]))
@@ -195,7 +261,8 @@ def refine_beats(fit, clean, sr, min_ncc=0.6):
     have = set(fit.n.tolist())
     gaps = np.array([k for k in range(fit.n[0], fit.n[-1] + 1) if k not in have], dtype=int)
     n = np.r_[fit.n, gaps]
-    t = np.r_[fit.ticks, a + gaps * beat + (gaps % 2) * c]
+    trend = _local_trend(fit.n, fit.resid, gaps)   # 박자가 밀린 구간에서도 그 자리의 틱을 찾게
+    t = np.r_[fit.ticks, a + gaps * beat + (gaps % 2) * c + trend]
     order = np.argsort(n); n, t = n[order], t[order]
     is_gap = np.isin(n, gaps)
     t2, ncc = _match(sig, sr, t, (n % 2).astype(float))

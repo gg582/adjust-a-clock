@@ -126,7 +126,7 @@ Während die Unruh um den Hubwinkel weiterdreht, vergeht genau die Zeit zwischen
 진폭 = 리프트각 / (2·sin(π · 언락→드롭 시간 / 한 주기))
 ```
 
-- **Mittelkurve:** Die Lautstärkekurven der gesamten Aufnahme werden für jeden Tick und Tack überlagert und der Median gebildet; als Entriegelung gilt die markanteste Spitze vor dem Fall im physikalisch möglichen Bereich (Zeit entsprechend einer Amplitude von 140–380°).
+- **Mittelkurve:** Die Lautstärkekurven der gesamten Aufnahme werden für jeden Tick und Tack überlagert und der Median gebildet; als Entriegelung gilt die erste deutliche Spitze vor dem Fall im physikalisch möglichen Bereich (Zeit entsprechend einer Amplitude von 90–380°); danach kann noch ein Impulsgeräusch folgen. Werte unter 140° gelten nur als Richtwert.
 - **Verlässlichkeit:** Per Bootstrap (zufälliges Neu-Ziehen der Ticks) wird der 95-%-Bereich bestimmt. Weichen Tick- und Tack-Wert um mehr als 30° ab oder ist der Bereich breiter als 40°, wird „nur als Anhaltspunkt" angezeigt.
 - **Hubwinkel:** werksspezifischer Wert. Der offizielle Wert der Slava 5671 konnte nicht gefunden werden, daher ist der für Schweizer Ankerhemmungen übliche Wert 52° voreingestellt. Der absolute Wert ist entsprechend unsicher.
 - **Vergleich derselben Uhr:** Da die Amplitude nahezu proportional zum Hubwinkel ist, ist der Vergleich von Aufnahmen derselben Uhr (ob die Amplitude gesunken ist) unabhängig vom Hubwinkel exakt. Dieser Trend ist im Regulierungsprotokoll-Diagramm sichtbar.
